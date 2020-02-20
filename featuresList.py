@@ -78,7 +78,10 @@ allFeatures=[
 'isUnpairedMuonTracker',
 'isUnpairedMuonTight',
 'isUnpairedMuonPF',
-'isUnpairedMuonLoose']
+'isUnpairedMuonLoose',
+'triggerMatchDimuon0',
+'triggerMatchJpsiTk',
+'triggerMatchJpsiTkTk']
 #'signalDecayPresent',
 #'normalizationDecayPresent',
 #'background1DecayPresent',
