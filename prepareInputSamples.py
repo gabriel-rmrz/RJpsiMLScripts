@@ -2,9 +2,12 @@ import os, sys, math
 import numpy as np
 from ROOT import gPad, gStyle
 from ROOT import TFile, TTree, TCanvas, TH1, TH1F
+from featuresList import allFeatures, processedFeatures
 
-
-
+outputFeaturesList = allFeatures
+features_tmp0 = [[]]* (len(outputFeaturesList) + 3)
+print(features_tmp0)
+    
 def bcSelector(inputTree, features_tmp, isBkg = False):
   for event in inputTree:
     if(event.nBc < 1) : return theBc
@@ -17,11 +20,23 @@ def bcSelector(inputTree, features_tmp, isBkg = False):
       if((event.Bc_jpsi_mass[iBc] < 2.95) or (event.Bc_jpsi_mass[iBc] > 3.25)): continue
       if((event.isMuon1Soft[iBc] < 1) or (event.isMuon2Soft[iBc] < 1) ): continue
       if(event.Bc_jpsi_pt[iBc] < 8.0): continue
+
       if(event.Bc_vertexProbability[iBc] < 0.1): continue
-      if(event.Bc_jpsi_vertexProbability[iBc] < 0.01): continue
+      if(event.Bc_jpsi_vertexProbability[iBc] < 0.05): continue
+      if(event.nn_ptUnpairedMu[iBc] <2): continue
+
+
       if((event.truthMatchMuNegative[iBc] < 1 or event.truthMatchMuPositive[iBc] < 1) and not isBkg): continue
       if(event.truthMatchUnpairedMu[iBc] < 1.0 and not isBkg): continue
 
+      nFeatures = len(outputFeaturesList)
+      for ifeature in range(nFeatures):
+          features_tmp[ifeature].append(event.__getattr__(outputFeaturesList[ifeature])[iBc])
+      
+      features_tmp[nFeatures].append(event.signalDecayPresent)
+      features_tmp[nFeatures+1].append(event.normalizationDecayPresent)
+      features_tmp[nFeatures+2].append(event.background1DecayPresent)
+      '''
       features_tmp[0].append(event.nn_energyBcRestFrame[iBc])
       features_tmp[1].append(event.nn_missMass2[iBc])
       features_tmp[2].append(event.nn_q2[iBc])
@@ -38,7 +53,7 @@ def bcSelector(inputTree, features_tmp, isBkg = False):
       features_tmp[13].append(event.signalDecayPresent)
       features_tmp[14].append(event.normalizationDecayPresent)
       features_tmp[15].append(event.background1DecayPresent)
-      if(isBkg): print("Ohh")
+      '''
       break
   return features_tmp
 
@@ -56,7 +71,7 @@ backgroundInputFile = TFile.Open(backgroundFileName)
 backgroundInputTree = backgroundInputFile.Get("rootuple/ntuple")
 
 
-features_tmp0 = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
+#features_tmp0 = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
 print("Selecting signal channel events.")
 features_tmp1 = bcSelector(signalInputTree, features_tmp0, isBkg = False)
 print("Selecting normalization channel events.")

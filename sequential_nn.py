@@ -5,7 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import SGD, Adam
 
-f = np.load("featuresData.npz")
+f = np.load("data/featuresData.npz")
 inputData = f["arr_0"]
 nn_inputFeatures = inputData[0:10,:]
 triggersFlags = (inputData[10:13,:]).astype(int) == 1
