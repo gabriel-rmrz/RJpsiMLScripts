@@ -4,6 +4,7 @@ import matplotlib
 #matplotlib.rcParams['text.usetex'] = True
 from matplotlib import pyplot 
 
+pyplot.figure(num=None, figsize=(8,8), dpi = 300, facecolor='w', edgecolor='k')
 
 print("Reading the input file...")
 
@@ -14,17 +15,16 @@ triggerFlags = (inputData[10:13,:]).astype(int)
 channelFlags = (inputData[13:16,:]).astype(int) == 1
 
 def plotPtVsEta(ptData, etaData, categories):
-    for i in range(len(categories)):
-        cat = categories[i,:]
-        pyplot.hist2d(etaData[cat], ptData[cat], bins=50, range = [[-2.4,2.4], [0.,25.]])
-        sufix = "OnlyDimuon0"
-        if(i == 1): sufix = "OnlyJPsiTk"
-        if(i == 2): sufix = "Dimuon0_AND_JPsiTk"
-        #pyplot.legend()
-        pyplot.xlabel("$\eta(\mu_{unpaired})$")
-        pyplot.ylabel("$p_{T} [GeV]$")
-        #pyplot.legend(0)
-        pyplot.savefig("plots/h2DEtaVsPt_"+sufix+".png")
+    pyplot.scatter(etaData[categories[0,]], ptData[categories[0,]], c='tab:blue', alpha=0.3, edgecolors = 'none', label='OnlyDimuon0' )
+    pyplot.scatter(etaData[categories[1,]], ptData[categories[1,]], c='tab:orange', alpha=0.3, edgecolors = 'none', label='OnlyJpsiTk' )
+    pyplot.scatter(etaData[categories[2,]], ptData[categories[2,]], c='tab:green', alpha=0.3, edgecolors = 'none', label='Dimuon0_and_JPsiTk' )
+    pyplot.legend()
+    pyplot.xlabel("$\eta(\mu_{unpaired})$")
+    pyplot.ylabel("$p_{T} [GeV]$")
+    pyplot.ylim(0.,15)
+    pyplot.xlim(-2.5,2.5)
+    pyplot.grid(True)
+    pyplot.savefig("plots/h2DEtaVsPt.png")
 
 def plotHistoByCategories(data, categories, labels, colors, name = "name___", log = False, myBins = None):
     mean = np.mean(data)
@@ -34,7 +34,8 @@ def plotHistoByCategories(data, categories, labels, colors, name = "name___", lo
     if (lenbin == 0):
         return
 
-    binning = np.arange(mean-2*stdev, mean + 2*stdev , lenbin*10)
+    nStdevs = 3 
+    binning = np.arange(mean-nStdevs*stdev, mean + nStdevs*stdev , lenbin*10)
 
     if myBins is not None:
         binning = mybins
@@ -42,7 +43,6 @@ def plotHistoByCategories(data, categories, labels, colors, name = "name___", lo
     pyplot.clf()
 
     for i in range(len(categories)):
-        #cat = np.multiply(categories[i,:],triggerFlags[2,:])
         cat = categories[i,:]
         color = colors[i]
         label = labels[i]
@@ -60,8 +60,6 @@ def plotHistoByCategories(data, categories, labels, colors, name = "name___", lo
 
 
 # Input for the plots
-
-#categories = (inputData[13:16,:]).astype(int) == 1
 intersection  = (np.logical_and(triggerFlags[0,:],triggerFlags[1,:])) == 1
 onlyDimuon0 = (triggerFlags[0,:] - intersection) == 1
 onlyJpsiTrack = (triggerFlags[1,:] - intersection) == 1
@@ -82,9 +80,9 @@ varNames = ["energyBcRestFrame",
         "phiUnpairedMu",
         "ptUnpairedMu",
         "etaUnpairedMu"]
-plotPtVsEta(nn_inputFeatures[8,:], nn_inputFeatures[9,:], categoriesSignal)
+plotPtVsEta(nn_inputFeatures[8,:], nn_inputFeatures[9,:], categories)
 for j in range(len(varNames)):
-    plotHistoByCategories ( nn_inputFeatures[j,:], categoriesSignal, labels, colors, name = varNames[j] )
+    plotHistoByCategories ( nn_inputFeatures[j,:], categories, labels, colors, name = varNames[j] )
 
 
 print('Done!')

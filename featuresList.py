@@ -64,7 +64,10 @@ allFeatures=[
 #'isUnpairedMuonLoose',
 'triggerMatchDimuon0',
 'triggerMatchJpsiTk',
-'triggerMatchJpsiTkTk']
+'triggerMatchJpsiTkTk',
+'signalDecayPresent',
+'normalizationDecayPresent',
+'background1DecayPresent']
 #'triggerMatchJpsi',
 #'triggerMatchJpsiTk',
 #'triggerMatchJpsiTkTk',
@@ -104,4 +107,7 @@ processedFeatures = [
 'nn_etaUnpairedMu',
 'triggerMatchDimuon0',
 'triggerMatchJpsiTk',
-'triggerMatchJpsiTkTk']
+'triggerMatchJpsiTkTk',
+'signalDecayPresent',
+'normalizationDecayPresent',
+'background1DecayPresent']
