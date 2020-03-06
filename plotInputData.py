@@ -8,7 +8,7 @@ pyplot.figure(num=None, figsize=(8,8), dpi = 300, facecolor='w', edgecolor='k')
 
 print("Reading the input file...")
 
-f = np.load("featuresData.npz")
+f = np.load("featuresProcessedData.npz")
 inputData = f["arr_0"]
 nn_inputFeatures = inputData[0:10,:]
 triggerFlags = (inputData[10:13,:]).astype(int)
@@ -34,7 +34,7 @@ def plotHistoByCategories(data, categories, labels, colors, name = "name___", lo
     if (lenbin == 0):
         return
 
-    nStdevs = 3 
+    nStdevs = 1 
     binning = np.arange(mean-nStdevs*stdev, mean + nStdevs*stdev , lenbin*10)
 
     if myBins is not None:
