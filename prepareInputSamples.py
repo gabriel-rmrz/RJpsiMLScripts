@@ -18,6 +18,8 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
   else:
     bcPtCorrected = bc_p4.Pt()
 
+  #print("bcPt: ", bc_p4.Pt())
+  #print("bcPtCorrected: ", bcPtCorrected)
   #muonsSystem_p4 = muon1_p4 + muon2_p4 + unpairedMuon_p4
 
   bcCorrected_p4 = TLorentzVector()
@@ -25,6 +27,7 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
       jpsi_p4.Eta(),
       jpsi_p4.Phi(),
       bc_p4.M())
+  print("deltaR(bc_p4,bcCorrected_p4): ", bcCorrected_p4.DeltaR(bc_p4))
   boostToBcCorrectedRestFrame = -bcCorrected_p4.BoostVector()
   #boostToJpsiRestFrame = -(muon1_p4+muon2_p4).BoostVector()
   boostToJpsiRestFrame = -jpsi_p4.BoostVector()
