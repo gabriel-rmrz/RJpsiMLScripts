@@ -34,7 +34,7 @@ def plotHistoByCategories(data, categories, labels, colors, name = "name___", lo
     if (lenbin == 0):
         return
 
-    nStdevs = 1 
+    nStdevs = 4
     binning = np.arange(mean-nStdevs*stdev, mean + nStdevs*stdev , lenbin*10)
 
     if myBins is not None:

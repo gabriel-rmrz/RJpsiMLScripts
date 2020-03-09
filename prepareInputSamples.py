@@ -20,12 +20,12 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
 
   #print("bcPt: ", bc_p4.Pt())
   #print("bcPtCorrected: ", bcPtCorrected)
-  #muonsSystem_p4 = muon1_p4 + muon2_p4 + unpairedMuon_p4
+  muonsSystem_p4 = muon1_p4 + muon2_p4 + unpairedMuon_p4
 
   bcCorrected_p4 = TLorentzVector()
   bcCorrected_p4.SetPtEtaPhiM(bcPtCorrected,
-      jpsi_p4.Eta(),
-      jpsi_p4.Phi(),
+      muonsSystem_p4.Eta(),
+      muonsSystem_p4.Phi(),
       bc_p4.M())
   print("deltaR(bc_p4,bcCorrected_p4): ", bcCorrected_p4.DeltaR(bc_p4))
   boostToBcCorrectedRestFrame = -bcCorrected_p4.BoostVector()
@@ -38,15 +38,15 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
   unpairedMuonBoostedToJpsiRestFrame_p4.Boost(boostToJpsiRestFrame)
 
   nn_energyBcRestFrame = unpairedMuonBoostedToBcCorrectedRestFrame_p4.E()
-  #nn_missMass2 = (bcCorrected_p4 - muon1_p4 - muon2_p4 - unpairedMuon_p4).M2()
-  nn_missMass2 = (bcCorrected_p4 - jpsi_p4 - unpairedMuon_p4).M2()
-  #nn_q2 = (bcCorrected_p4 - muon1_p4 - muon2_p4).M2()
-  nn_q2 = (bcCorrected_p4 - jpsi_p4).M2()
-  #nn_missPt = bcCorrected_p4.Pt() - muon1_p4.Pt() - muon2_p4.Pt() - unpairedMuon_p4.Pt()
-  nn_missPt = bcCorrected_p4.Pt() - jpsi_p4.Pt() - unpairedMuon_p4.Pt()
+  nn_missMass2 = (bcCorrected_p4 - muon1_p4 - muon2_p4 - unpairedMuon_p4).M2()
+  #nn_missMass2 = (bc_p4 - jpsi_p4 - unpairedMuon_p4).M2()
+  nn_q2 = (bc_p4 - muon1_p4 - muon2_p4).M2()
+  #nn_q2 = (bcCorrected_p4 - jpsi_p4).M2()
+  nn_missPt = bcCorrected_p4.Pt() - muon1_p4.Pt() - muon2_p4.Pt() - unpairedMuon_p4.Pt()
+  #nn_missPt = bcCorrected_p4.Pt() - jpsi_p4.Pt() - unpairedMuon_p4.Pt()
   nn_energyJpsiRestFrame = unpairedMuonBoostedToJpsiRestFrame_p4.E()
-  #nn_varPt = (muon1_p4 + muon2_p4).Pt() - unpairedMuon_p4.Pt()
-  nn_varPt = jpsi_p4.Pt() - unpairedMuon_p4.Pt()
+  nn_varPt = (muon1_p4 + muon2_p4).Pt() - unpairedMuon_p4.Pt()
+  #nn_varPt = jpsi_p4.Pt() - unpairedMuon_p4.Pt()
   nn_deltaRMu1Mu2 = muon1_p4.DeltaR(muon2_p4)
   nn_unpairedMuPhi = unpairedMuon_p4.Phi()
   nn_unpairedMuPt = unpairedMuon_p4.Pt()
@@ -120,7 +120,8 @@ def fillProcessedFeaturesArray(featuresProcessed, channel):
           event.Bc_jpsi_pz[iBc],
           event.Bc_jpsi_mass[iBc])
 
-      featuresEntry = computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4)
+      #featuresEntry = computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4)
+      featuresEntry = computeProcessedFeatures(event.gen_muonPositive_p4, event.gen_muonNegative_p4, event.gen_unpairedMuon_p4, event.gen_jpsi_p4, event.gen_b_p4)
       featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchDimuon0[iBc]]]), axis=0)
       featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTk[iBc]]]), axis=0)
       featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTkTk[iBc]]]), axis=0)
@@ -155,7 +156,8 @@ def main():
   features = np.array([[]]* nFeatures, dtype=np.float32)
   featuresProcessed = np.array([[]]*nFeaturesProcessed, dtype=np.float32)
 
-  channels=["tau", "muon", "jpsiX"]
+  #channels=["tau", "muon", "jpsiX"]
+  channels=["tau", "muon"]
   for channel in channels:
     print("Selecting "+channel+" channel events.")
     features = fillFeaturesArray(features, channel)
