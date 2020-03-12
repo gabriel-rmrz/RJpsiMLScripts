@@ -27,7 +27,7 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
       muonsSystem_p4.Eta(),
       muonsSystem_p4.Phi(),
       bc_p4.M())
-  print("deltaR(bc_p4,bcCorrected_p4): ", bcCorrected_p4.DeltaR(bc_p4))
+  #print("deltaR(bc_p4,bcCorrected_p4): ", bcCorrected_p4.DeltaR(bc_p4))
   boostToBcCorrectedRestFrame = -bcCorrected_p4.BoostVector()
   #boostToJpsiRestFrame = -(muon1_p4+muon2_p4).BoostVector()
   boostToJpsiRestFrame = -jpsi_p4.BoostVector()
@@ -133,6 +133,20 @@ def fillProcessedFeaturesArray(featuresProcessed, channel):
 
   return featuresProcessed
 
+def fillGenFeaturesArray(genFeatures, channel):
+  inputFileName = "rootuples/RootupleBcTo3Mu_"+channel+"Channel.root"
+  inputFile = TFile.Open(inputFileName)
+  inputTree = inputFile.Get("rootuple/ntuple")
+  for event in inputTree:
+    if(event.nBc < 1) : continue 
+    iBcSelected = bcSelector(event, isBkg = False)
+    for iBc in iBcSelected:
+      featuresEntry = np.array([[event.gen_b_p4.Px()], [event.gen_b_p4.Py()], [event.gen_b_p4.Pz()]])
+      genFeatures = np.append(genFeatures, featuresEntry, axis = 1)
+
+  return genFeatures
+
+
 def fillFeaturesArray(features, channel):
   inputFileName = "rootuples/RootupleBcTo3Mu_"+channel+"Channel.root"
   inputFile = TFile.Open(inputFileName)
@@ -151,17 +165,26 @@ def fillFeaturesArray(features, channel):
 
 
 def main():
-  nFeatures = len(featuresList)
+  nFeatures = len(featuresList) 
+  nGenFeatures = 3
   nFeaturesProcessed = 16
   features = np.array([[]]* nFeatures, dtype=np.float32)
+  genFeatures = np.array([[]]* nGenFeatures, dtype=np.float32)
   featuresProcessed = np.array([[]]*nFeaturesProcessed, dtype=np.float32)
 
   #channels=["tau", "muon", "jpsiX"]
-  channels=["tau", "muon"]
+  channels=["tau"]
   for channel in channels:
     print("Selecting "+channel+" channel events.")
     features = fillFeaturesArray(features, channel)
     featuresProcessed = fillProcessedFeaturesArray(featuresProcessed, channel)
+    genFeatures = fillGenFeaturesArray(genFeatures, channel)
+
+  print(features.shape)
+  print(genFeatures.shape)
+  features = np.append(genFeatures, features, axis=0)
+  print(features.shape)
+  
   
   np.savez_compressed('featuresData.npz', features)
   np.savez_compressed('featuresProcessedData.npz', featuresProcessed)
