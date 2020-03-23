@@ -12,7 +12,7 @@ jpsiPdgMass = 3.0969
 bcPdgMass = 6.2756
 
 def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4):
-  nProcessedFeatures = 15 # 10 processed features + 5 4-vectors energies
+  nProcessedFeatures = 21 # 10 processed features + 5 4-vectors energies + 6 trigger and decay channel information
   if ( bc_p4.M() != 0): 
     bcPtCorrected = (bcPdgMass * bc_p4.Pt())/ bc_p4.M()
   else:
@@ -40,13 +40,13 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
   nn_energyBcRestFrame = unpairedMuonBoostedToBcCorrectedRestFrame_p4.E()
   nn_missMass2 = (bcCorrected_p4 - muon1_p4 - muon2_p4 - unpairedMuon_p4).M2()
   #nn_missMass2 = (bc_p4 - jpsi_p4 - unpairedMuon_p4).M2()
-  nn_q2 = (bc_p4 - muon1_p4 - muon2_p4).M2()
-  #nn_q2 = (bcCorrected_p4 - jpsi_p4).M2()
-  nn_missPt = bcCorrected_p4.Pt() - muon1_p4.Pt() - muon2_p4.Pt() - unpairedMuon_p4.Pt()
-  #nn_missPt = bcCorrected_p4.Pt() - jpsi_p4.Pt() - unpairedMuon_p4.Pt()
+  #nn_q2 = (bc_p4 - muon1_p4 - muon2_p4).M2()
+  nn_q2 = (bcCorrected_p4 - jpsi_p4).M2()
+  #nn_missPt = bcCorrected_p4.Pt() - muon1_p4.Pt() - muon2_p4.Pt() - unpairedMuon_p4.Pt()
+  nn_missPt = bcCorrected_p4.Pt() - jpsi_p4.Pt() - unpairedMuon_p4.Pt()
   nn_energyJpsiRestFrame = unpairedMuonBoostedToJpsiRestFrame_p4.E()
-  nn_varPt = (muon1_p4 + muon2_p4).Pt() - unpairedMuon_p4.Pt()
-  #nn_varPt = jpsi_p4.Pt() - unpairedMuon_p4.Pt()
+  #nn_varPt = (muon1_p4 + muon2_p4).Pt() - unpairedMuon_p4.Pt()
+  nn_varPt = jpsi_p4.Pt() - unpairedMuon_p4.Pt()
   nn_deltaRMu1Mu2 = muon1_p4.DeltaR(muon2_p4)
   nn_unpairedMuPhi = unpairedMuon_p4.Phi()
   nn_unpairedMuPt = unpairedMuon_p4.Pt()
@@ -129,12 +129,12 @@ def fillProcessedFeaturesArray(featuresProcessed, channel):
 
 
       #featuresEntry = computeProcessedFeatures(event.gen_muonPositive_p4, event.gen_muonNegative_p4, event.gen_unpairedMuon_p4, event.gen_jpsi_p4, event.gen_b_p4)
-      #featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchDimuon0[iBc]]]), axis=0)
-      #featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTk[iBc]]]), axis=0)
-      #featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTkTk[iBc]]]), axis=0)
-      #featuresEntry = np.append(featuresEntry, np.array([[event.signalDecayPresent[iBc]]]), axis=0)
-      #featuresEntry = np.append(featuresEntry, np.array([[event.normalizationDecayPresent[iBc]]]), axis=0)
-      #featuresEntry = np.append(featuresEntry, np.array([[event.background1DecayPresent[iBc]]]), axis=0)
+      featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchDimuon0[iBc]]]), axis=0)
+      featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTk[iBc]]]), axis=0)
+      featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTkTk[iBc]]]), axis=0)
+      featuresEntry = np.append(featuresEntry, np.array([[event.signalDecayPresent[iBc]]]), axis=0)
+      featuresEntry = np.append(featuresEntry, np.array([[event.normalizationDecayPresent[iBc]]]), axis=0)
+      featuresEntry = np.append(featuresEntry, np.array([[event.background1DecayPresent[iBc]]]), axis=0)
       
 
       featuresProcessed = np.append(featuresProcessed,featuresEntry, axis=1)
@@ -176,13 +176,14 @@ def fillFeaturesArray(features, channel):
 def main():
   nFeatures = len(featuresList) 
   nGenFeatures = 4
-  nFeaturesProcessed = 15
+  nFeaturesProcessed = 21 
   features = np.array([[]]* nFeatures, dtype=np.float32)
   genFeatures = np.array([[]]* nGenFeatures, dtype=np.float32)
   featuresProcessed = np.array([[]]*nFeaturesProcessed, dtype=np.float32)
 
   #channels=["tau", "muon", "jpsiX"]
-  channels=["tau"]
+  channels=["tau", "muon"]
+  #channels=["tau"]
   for channel in channels:
     print("Selecting "+channel+" channel events.")
     features = fillFeaturesArray(features, channel)
