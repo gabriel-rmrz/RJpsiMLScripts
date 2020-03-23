@@ -10,10 +10,10 @@ print("Reading the input file...")
 
 f = np.load("featuresProcessedData.npz")
 inputData = f["arr_0"]
-nn_inputFeatures = inputData[0:10,:]
-allEnergies = inputData[10:15,:]
-triggerFlags = (inputData[15:18,:]).astype(int)
-channelFlags = (inputData[18:20,:]).astype(int) == 1
+nn_inputFeatures = (inputData[4:14,:]).astype(float)
+allEnergies = inputData[14:19,:]
+triggerFlags = (inputData[19:22,:]).astype(int)
+channelFlags = (inputData[22:24,:]).astype(int) == 1
 
 def plotPtVsEta(ptData, etaData, categories):
     pyplot.scatter(etaData[categories[0,]], ptData[categories[0,]], c='tab:blue', alpha=0.3, edgecolors = 'none', label='OnlyDimuon0' )
@@ -46,6 +46,7 @@ def plotAllEnergies(allEnergies):
     pyplot.clf()
 
 def plotHistoByCategories(data, categories, labels, colors, name = "name___", log = False, myBins = None, prefix=None):
+
     mean = np.mean(data)
     stdev = np.std(data)
     lenbin = stdev/(len(data)**0.5)
@@ -54,6 +55,11 @@ def plotHistoByCategories(data, categories, labels, colors, name = "name___", lo
         return
 
     nStdevs = 4
+    print(name)
+    print(mean)
+    print(stdev)
+    print(lenbin)
+    print(data.shape)
     binning = np.arange(mean-nStdevs*stdev, mean + nStdevs*stdev , lenbin*10)
 
     if myBins is not None:

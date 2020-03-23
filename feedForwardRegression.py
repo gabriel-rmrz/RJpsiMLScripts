@@ -24,22 +24,23 @@ print(tf.__version__)
 ########################################################################
 ########################################################################
 
-inputFile="data/featuresData.npz"
+inputFile="featuresData.npz"
 f = np.load(inputFile)#, allow_pickle=True)
 inputData = f["arr_0"]
 inputData=np.swapaxes(inputData, 0, 1)
 print(inputData.shape)
 
-inputData = inputData[inputData[:,23].astype(int) == 1,] # 22 for signal channel and 23 for normalization channel
+inputData = inputData[inputData[:,26].astype(int) == 1,] # 26 for signal channel and 27 for normalization channel
 target=inputData[:,0:4]
 print (target.shape)
 
-reg_input=inputData[:,[26, 27, 28, 16, 17, 18, 30, 31, 32, 45, 46, 47, 51, 52, 53, 71, 72, 73, 74, 75, 76, 77, 78, 79]]
+reg_input=inputData[:,[30, 31, 32, 20, 21, 22, 34, 35, 36, 49, 50, 51, 55, 56, 57, 75, 76, 77, 78, 79, 80, 81, 82, 83]]
 print (reg_input.shape)
+
 
 batch_size = 100
 validation_frac = 0.2
-n_epochs = 500
+n_epochs = 200
 dropoutRate = 0.1
 inputData.shape
 
@@ -52,6 +53,9 @@ v_data=reg_input[int((1-validation_frac)*len(reg_input)):len(reg_input)]
 
 t_target=target[0:int((1-validation_frac)*len(target))]
 v_target=target[int((1-validation_frac)*len(target)):len(target)]
+
+t_allData=inputData[0:int((1-validation_frac)*len(inputData))]
+v_allData=inputData[int((1-validation_frac)*len(inputData)):len(inputData)]
 
 scaled_t_data=sc.transform(t_data)
 scaled_v_data=sc.transform(v_data)
@@ -119,7 +123,9 @@ plt.yscale('log')
 plt.ylabel('mae')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
+plt.clf()
 #plt.show()
+
 
 prediction_p4 = model.predict(scaled_v_data)
 prediction_px = prediction_p4[:,0]
@@ -137,6 +143,10 @@ plt.scatter(v_data[:,0],v_target[:,0],  c='tab:blue', alpha = 0.2, label = 'targ
 plt.plot(x, x + 0, '-g', label= 'input_data')
 plt.legend(loc='upper left', fontsize='x-small')
 plt.grid(True) 
+plt.xlabel("px(input_data) [GeV]")
+plt.ylabel("px [GeV]")
+plt.savefig(plotsDir+'sPxComparison.png')
+plt.clf()
 #plt.savefig('test.png')
 
 
@@ -146,6 +156,10 @@ plt.scatter(v_data[:,1],v_target[:,1],  c='tab:blue', alpha = 0.2, label = 'targ
 plt.plot(x, x + 0, '-g', label= 'input_data')
 plt.legend(loc='upper left', fontsize='x-small')
 plt.grid(True)
+plt.xlabel("py(input_data) [GeV]")
+plt.ylabel("py [GeV]")
+plt.savefig(plotsDir+'sPyComparison.png')
+plt.clf()
 #plt.savefig('test.png')
 
 x = np.linspace(-100., 100., 1000)
@@ -154,6 +168,10 @@ plt.scatter(v_data[:,2],v_target[:,2],  c='tab:blue', alpha = 0.2, label = 'targ
 plt.plot(x, x + 0, '-g', label= 'input_data')
 plt.legend(loc='upper left', fontsize='x-small')
 plt.grid(True)
+plt.xlabel("pz(input_data) [GeV]")
+plt.ylabel("pz [GeV]")
+plt.savefig(plotsDir+'sPzComparison.png')
+plt.clf()
 #plt.savefig('test.png')
 
 x = np.linspace(0., 100., 1000)
@@ -162,9 +180,12 @@ plt.scatter(v_data[:,3],v_target[:,3],  c='tab:blue', alpha = 0.2, label = 'targ
 plt.plot(x, x + 0, '-g', label= 'input_data')
 plt.legend(loc='upper left', fontsize='x-small')
 plt.grid(True)
+plt.xlabel("Energy(input_data) [GeV]")
+plt.ylabel("Energy [GeV]")
+plt.savefig(plotsDir+'sEnergyComparison.png')
+plt.clf()
 #plt.savefig('test.png')
 
-plt.clf()
 minVal = 0
 maxVal = 60
 binwidth = 4
@@ -175,4 +196,35 @@ plt.hist(v_target[:,3], bins=bins,  color='tab:blue', label='target_data', densi
 plt.legend(loc='upper right', fontsize='x-small')
 #plt.xlim(-50,50)
 #plt.grid(True)
-plt.savefig(plotsDir+'hEnergyComparison.pdf')
+plt.xlabel("Energy [GeV]")
+plt.savefig(plotsDir+'hEnergyComparison.png')
+plt.clf()
+
+
+
+
+########################################################################3
+pt_measured = np.sqrt(v_allData[:,30]**2 + v_allData[:,31]**2)
+pt_corrected = np.sqrt(v_allData[:,4]**2 + v_allData[:,5]**2)
+pt_target = np.sqrt(v_target[:,0]**2 + v_target[:,1]**2)
+pt_predicted = np.sqrt(prediction_px**2 + prediction_py**2)
+
+label_measured = 'Measured (mean={:5.3f}, std={:5.3})'.format(np.mean(pt_measured), np.std(pt_measured))
+label_corrected = 'Corrected (mean={:5.3f}, std={:5.3})'.format(np.mean(pt_corrected), np.std(pt_corrected))
+label_target = 'Truth (mean={:5.3f}, std={:5.3})'.format(np.mean(pt_target), np.std(pt_target))
+label_predicted = 'Predicted (mean={:5.3f}, std={:5.3})'.format(np.mean(pt_predicted), np.std(pt_predicted))
+
+minVal = 0
+maxVal = 50
+binwidth = 2
+bins=range(minVal, maxVal + binwidth, binwidth)
+plt.hist(pt_measured, bins=bins, color='tab:green', label=label_measured, density=True )
+plt.hist(pt_predicted, bins=bins, color='tab:orange', label=label_predicted, density=True)
+plt.hist(pt_corrected, bins=bins, color='tab:red', label=label_corrected, density=True)
+plt.hist(pt_target, bins=bins,  color='tab:blue', label=label_target, density=True)
+plt.legend(loc='upper left', fontsize='x-small')
+plt.xlabel("pT [GeV]")
+#plt.xlim(-50,50)
+#plt.grid(True)
+plt.savefig(plotsDir+'hPtComparison.png')
+plt.clf()
