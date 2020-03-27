@@ -16,7 +16,7 @@ triggerFlags = (inputData[19:22,:]).astype(int)
 channelFlags = (inputData[22:24,:]).astype(int) == 1
 
 def plotPtVsEta(ptData, etaData, categories):
-    pyplot.scatter(etaData[categories[0,]], ptData[categories[0,]], c='tab:blue', alpha=0.3, edgecolors = 'none', label='OnlyDimuon0' )
+    pyplot.scatter(etaData[categories[0,]], ptData[categories[0,]], c='tab:blue', alpha=0.3, edgecolors= 'none', label='OnlyDimuon0' )
     pyplot.scatter(etaData[categories[1,]], ptData[categories[1,]], c='tab:orange', alpha=0.3, edgecolors = 'none', label='OnlyJpsiTk' )
     pyplot.scatter(etaData[categories[2,]], ptData[categories[2,]], c='tab:green', alpha=0.3, edgecolors = 'none', label='Dimuon0_and_JPsiTk' )
     pyplot.legend()

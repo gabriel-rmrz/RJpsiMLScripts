@@ -10,7 +10,7 @@ gStyle.SetOptStat(0)
 muonPdgMass = 0.113428
 jpsiPdgMass = 3.0969
 bcPdgMass = 6.2756
-nProcessedFeatures = 25 # 14 processed features + 5 4-vectors energies + 6 trigger and decay channel information
+nProcessedFeatures = 26 # 5 corrected pt + 10 processed features + 5 4-vectors energies + 6 trigger and decay channel information
 
 def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4):
   if ( bc_p4.M() != 0): 
@@ -53,7 +53,8 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
   nn_unpairedMuEta = unpairedMuon_p4.Eta()
   #print(nn_energyBcRestFrame)
   
-  featuresEntry = np.array([[bcCorrected_p4.Px()], 
+  featuresEntry = np.array([[bcCorrected_p4.Pt()], 
+    [bcCorrected_p4.Px()], 
     [bcCorrected_p4.Py()], 
     [bcCorrected_p4.Pz()], 
     [bcCorrected_p4.E()], 
@@ -154,7 +155,7 @@ def fillGenFeaturesArray(genFeatures, channel):
     if(event.nBc < 1) : continue 
     iBcSelected = bcSelector(event, isBkg = False)
     for iBc in iBcSelected:
-      featuresEntry = np.array([[event.gen_b_p4.Px()], [event.gen_b_p4.Py()], [event.gen_b_p4.Pz()], [event.gen_b_p4.E()]])
+      featuresEntry = np.array([[event.gen_b_p4.Pt()], [event.gen_b_p4.Px()], [event.gen_b_p4.Py()], [event.gen_b_p4.Pz()], [event.gen_b_p4.E()]])
       genFeatures = np.append(genFeatures, featuresEntry, axis = 1)
 
 
@@ -180,7 +181,7 @@ def fillFeaturesArray(features, channel):
 
 def main():
   nFeatures = len(featuresList) 
-  nGenFeatures = 4
+  nGenFeatures = 5
   features = np.array([[]]* nFeatures, dtype=np.float32)
   genFeatures = np.array([[]]* nGenFeatures, dtype=np.float32)
   featuresProcessed = np.array([[]]*nProcessedFeatures, dtype=np.float32)
@@ -194,8 +195,10 @@ def main():
     featuresProcessed = fillProcessedFeaturesArray(featuresProcessed, channel)
     genFeatures = fillGenFeaturesArray(genFeatures, channel)
 
-  print(features.shape)
-  print(genFeatures.shape)
+
+  print("features shape: ", features.shape)
+  print("features processed shape: ", featuresProcessed.shape)
+  print("genfeatures processed: ", genFeatures.shape)
   features_tmp = np.append(featuresProcessed, features, axis=0)
   features = np.append(genFeatures, features_tmp, axis=0)
   print(features.shape)
