@@ -25,59 +25,42 @@ print(tf.__version__)
 # Preparation of the input featues
 ########################################################################
 ########################################################################
-class dataSet():
-  inputFile=inputFile
-  f = np.load(inputFile)#, allow_pickle=True)
-  inputData = f["arr_0"]
-  inputData = np.swapaxes(inputData, 0, 1)
-  validation_frac = 0.3
+inputFile="featuresData.npz"
+f = np.load(inputFile)#, allow_pickle=True)
+inputData = f["arr_0"]
+inputData = np.swapaxes(inputData, 0, 1)
+validation_frac = 0.3
 
-  def __init__(self, inputFile = "featuresData.npz"): 
-  #inputData_norm = inputData[inputData[:,29].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
-  #inputData_norm = inputData_norm[-4001:,:] 
-  #inputData_sig = inputData[inputData[:,28].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
-  #inputData_sig = inputData_sig[:1000,:] 
-  #inputData = np.append(inputData_norm, inputData_sig, axis=0)
+#inputData_norm = inputData[inputData[:,29].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
+#inputData_norm = inputData_norm[-4001:,:] 
+#inputData_sig = inputData[inputData[:,28].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
+#inputData_sig = inputData_sig[:1000,:] 
+#inputData = np.append(inputData_norm, inputData_sig, axis=0)
 
-  target=inputData[:,[0,3,4]]
-  reg_input=inputData[:,[32, 33, 34, 35, 20, 21, 22, 23, 24, 36, 37, 38, 39, 47, 48, 49, 50, 51, 52, 53, 54, 57, 58, 59, 60, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87]]
-  print (reg_input.shape)
+target=inputData[:,[0,3,4]]
+reg_input=inputData[:,[32, 33, 34, 35, 20, 21, 22, 23, 24, 36, 37, 38, 39, 47, 48, 49, 50, 51, 52, 53, 54, 57, 58, 59, 60, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87]]
+print (reg_input.shape)
 
-  sc = StandardScaler().fit(reg_input)
-  
-  t_data=reg_input[0:int((1-validation_frac)*len(reg_input))]
-  v_data=reg_input[int((1-validation_frac)*len(reg_input)):len(reg_input)]
-  
-  t_target=target[0:int((1-validation_frac)*len(target))]
-  v_target=target[int((1-validation_frac)*len(target)):len(target)]
-  
-  t_allData=inputData[0:int((1-validation_frac)*len(inputData))]
-  v_allData=inputData[int((1-validation_frac)*len(inputData)):len(inputData)]
-  
-  scaled_t_data=sc.transform(t_data)
-  scaled_v_data=sc.transform(v_data)
-  
-  def set(self):
-      pass
-  def getTrainingSubsample(self):
-      pass
-  def getValidationSubsample(self):
-      pass
-  def save(self):
-      pass
-  def setValidationFraction(self):
-      pass
-        
-class dataSetType():
-  def __init__(self, name= 'all', selectedRows=...)
+sc = StandardScaler().fit(reg_input)
 
-  #return inputData, reg_input, target
+t_data=reg_input[0:int((1-validation_frac)*len(reg_input))]
+v_data=reg_input[int((1-validation_frac)*len(reg_input)):len(reg_input)]
+
+t_target=target[0:int((1-validation_frac)*len(target))]
+v_target=target[int((1-validation_frac)*len(target)):len(target)]
+
+t_allData=inputData[0:int((1-validation_frac)*len(inputData))]
+v_allData=inputData[int((1-validation_frac)*len(inputData)):len(inputData)]
+
+scaled_t_data=sc.transform(t_data)
+scaled_v_data=sc.transform(v_data)
 
 batch_size = 50 
 n_epochs = 200
 dropoutRate = 0.1
 inputData.shape
 
+data_len=scaled_t_data.shape[1]
 
 ########################################################################
 ########################################################################
@@ -242,4 +225,18 @@ plt.hist(ratio_pz_corrected, bins=bins, color='tab:cyan', label=label_corrected,
 plt.legend(loc='upper left', fontsize='x-small')
 plt.xlabel("")
 plt.savefig(plotsDir+'hPzComparison.png')
+plt.clf()
+
+
+
+
+x = np.linspace(0., 200., 1000)
+plt.scatter(v_target[:,0], ratio_predicted, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
+plt.scatter(v_target[:,0], ratio_corrected, c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
+plt.plot(x, x + 0, '-b', label= 'Truth MC')
+plt.legend(loc='upper left', fontsize='x-small')
+plt.grid(True)
+plt.ylabel("Ratio pT(Bc) (modified/Truth MC) ")
+plt.xlabel("pT(Bc) (Truth MC) [GeV]")
+plt.savefig(plotsDir+'sRatioVsPt.png')
 plt.clf()
