@@ -1,5 +1,9 @@
 import os
+from featuresListResults import featuresListResults
+
 import numpy as np
+from root_numpy import array2tree, array2root
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from sklearn.metrics import roc_curve, auc
@@ -31,13 +35,15 @@ inputData = f["arr_0"]
 inputData = np.swapaxes(inputData, 0, 1)
 validation_frac = 0.3
 
+inputData = inputData[inputData[:,29].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
+inputData = inputData[:1100,] # 28 for signal channel and 29 for normalization channel
 #inputData_norm = inputData[inputData[:,29].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
 #inputData_norm = inputData_norm[-4001:,:] 
 #inputData_sig = inputData[inputData[:,28].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
 #inputData_sig = inputData_sig[:1000,:] 
 #inputData = np.append(inputData_norm, inputData_sig, axis=0)
 
-target=inputData[:,[0,3,4]]
+target=inputData[:,[0,3]]
 reg_input=inputData[:,[32, 33, 34, 35, 20, 21, 22, 23, 24, 36, 37, 38, 39, 47, 48, 49, 50, 51, 52, 53, 54, 57, 58, 59, 60, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87]]
 print (reg_input.shape)
 
@@ -51,6 +57,13 @@ v_target=target[int((1-validation_frac)*len(target)):len(target)]
 
 t_allData=inputData[0:int((1-validation_frac)*len(inputData))]
 v_allData=inputData[int((1-validation_frac)*len(inputData)):len(inputData)]
+
+print(len(featuresListResults))
+print(v_allData[1,].size)
+allDataToTree = np.array([[v_allData[i,feature] for i in range(v_allData[:,0].size)] for feature in range(v_allData[0,].size)], dtype=featuresListResults)
+print([v_allData[:,feature].tolist() for feature in range(v_allData[0,].size)])
+dataTree = array2tree(allDataToTree)
+print(dataTree.Scan())
 
 scaled_t_data=sc.transform(t_data)
 scaled_v_data=sc.transform(v_data)
@@ -80,7 +93,7 @@ model.add(Dense(40, activation="relu", kernel_initializer="glorot_uniform"))
 model.add(Dropout(dropoutRate))
 model.add(Dense(20, activation="relu", kernel_initializer="glorot_uniform"))
 model.add(Dropout(dropoutRate))
-model.add(Dense(3, kernel_initializer="glorot_uniform"))
+model.add(Dense(2, kernel_initializer="glorot_uniform"))
 print('compiling')
 
 
@@ -126,7 +139,7 @@ plt.clf()
 prediction_p4 = model.predict(scaled_v_data)
 prediction_pt = prediction_p4[:,0]
 prediction_pz = prediction_p4[:,1]
-prediction_E = prediction_p4[:,2]
+#prediction_E = prediction_p4[:,2]
 
 x = np.linspace(0., 60., 1000)
 plt.figure(num=None, figsize=(6, 6), dpi = 300, facecolor='w', edgecolor='k') 
@@ -156,8 +169,8 @@ plt.savefig(plotsDir+'sPzComparison.png')
 plt.clf()
 
 x = np.linspace(0., 200., 1000)
-plt.scatter(v_target[:,2], prediction_E, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
-plt.scatter(v_target[:,2], v_allData[:,9], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
+#plt.scatter(v_target[:,2], prediction_E, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
+#plt.scatter(v_target[:,2], v_allData[:,9], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
 plt.plot(x, x + 0, '-b', label= 'Truth MC')
 #plt.scatter(v_target[:,2], prediction_E, c='tab:blue', alpha = 0.2)
 #plt.scatter(v_target[:,2], prediction_E, c='tab:red', alpha = 0.2)
@@ -165,7 +178,7 @@ plt.legend(loc='upper left', fontsize='x-small')
 plt.grid(True)
 plt.xlabel("Energy(Truth MC) [GeV]")
 plt.ylabel("Energy(NN prediction) [GeV]")
-plt.savefig(plotsDir+'sEnergyComparison.png')
+#plt.savefig(plotsDir+'sEnergyComparison.png')
 plt.clf()
 
 minVal = 0
@@ -173,13 +186,13 @@ maxVal = 60
 binwidth = 4
 bins=range(minVal, maxVal + binwidth, binwidth)
 plt.hist(v_data[:,4], bins=bins, color='tab:gray', label='Non corrected', histtype = 'step', density=True)
-plt.hist(prediction_E, bins=bins, color='tab:orange', label='NN prediction', histtype = 'step', density=True)
-plt.hist(v_target[:,2], bins=bins,  color='tab:cyan', label='Jona recipy', histtype = 'step', density=True)
+#plt.hist(prediction_E, bins=bins, color='tab:orange', label='NN prediction', histtype = 'step', density=True)
+#plt.hist(v_target[:,2], bins=bins,  color='tab:cyan', label='Jona recipy', histtype = 'step', density=True)
 plt.legend(loc='upper right', fontsize='x-small')
 #plt.xlim(-50,50)
 #plt.grid(True)
 plt.xlabel("Energy [GeV]")
-plt.savefig(plotsDir+'hEnergyComparison.png')
+#plt.savefig(plotsDir+'hEnergyComparison.png')
 plt.clf()
 
 
@@ -230,13 +243,51 @@ plt.clf()
 
 
 
-x = np.linspace(0., 200., 1000)
 plt.scatter(v_target[:,0], ratio_predicted, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
 plt.scatter(v_target[:,0], ratio_corrected, c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-plt.plot(x, x + 0, '-b', label= 'Truth MC')
 plt.legend(loc='upper left', fontsize='x-small')
 plt.grid(True)
 plt.ylabel("Ratio pT(Bc) (modified/Truth MC) ")
 plt.xlabel("pT(Bc) (Truth MC) [GeV]")
 plt.savefig(plotsDir+'sRatioVsPt.png')
 plt.clf()
+
+plt.scatter(v_target[:,1], ratio_pz_predicted, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
+plt.scatter(v_target[:,1], ratio_pz_corrected, c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
+plt.legend(loc='upper left', fontsize='x-small')
+plt.grid(True)
+#plt.xlim(-10,10)
+plt.ylim(0.,2.)
+plt.ylabel("Ratio pT(Bc) (modified/Truth MC) ")
+plt.xlabel("pT(Bc) (Truth MC) [GeV]")
+plt.savefig(plotsDir+'sRatioVsPz.png')
+plt.clf()
+
+plt.scatter(v_target[ratio_pz_predicted<0.,1], ratio_pz_predicted[ratio_pz_predicted < 0.], c='tab:orange', alpha = 0.2, label = 'NN prediction') 
+plt.scatter(v_target[ratio_pz_corrected<0.,1], ratio_pz_corrected[ratio_pz_corrected < 0.], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
+plt.scatter(v_target[ratio_pz_predicted>2.,1], ratio_pz_predicted[ratio_pz_predicted >2.], c='tab:orange', alpha = 0.2) 
+plt.scatter(v_target[ratio_pz_corrected>2.,1], ratio_pz_corrected[ratio_pz_corrected >2.], c='tab:cyan', alpha = 0.2) 
+print(ratio_pz_predicted[ratio_pz_predicted<0.])
+plt.legend(loc='upper left', fontsize='x-small')
+plt.xlim(-10,10)
+plt.ylim(-200,200)
+plt.grid(True)
+plt.ylabel("Ratio pz(Bc) (modified/Truth MC) ")
+plt.xlabel("pz(Bc) (Truth MC) [GeV]")
+plt.savefig(plotsDir+'sRatioVsPz_extremeVals.png')
+plt.clf()
+
+plt.scatter(v_target[ratio_predicted<0.,0], ratio_pz_predicted[ratio_predicted < 0.], c='tab:orange', alpha = 0.2, label = 'NN prediction') 
+plt.scatter(v_target[ratio_corrected<0.,0], ratio_pz_corrected[ratio_corrected < 0.], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
+plt.scatter(v_target[ratio_predicted>2.,0], ratio_pz_predicted[ratio_predicted >2.], c='tab:orange', alpha = 0.2) 
+plt.scatter(v_target[ratio_corrected>2.,0], ratio_pz_corrected[ratio_corrected >2.], c='tab:cyan', alpha = 0.2) 
+plt.legend(loc='upper left', fontsize='x-small')
+plt.xlim(-10,10)
+plt.ylim(-200,200)
+plt.grid(True)
+plt.ylabel("Ratio pz(Bc) (modified/Truth MC) ")
+plt.xlabel("pz(Bc) (Truth MC) [GeV]")
+plt.savefig(plotsDir+'sRatioVsPt_extremeVals.png')
+plt.clf()
+
+
