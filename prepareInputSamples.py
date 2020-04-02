@@ -7,7 +7,7 @@ from ROOT import TFile, TTree, TCanvas, TH1, TH1F, Math, TLorentzVector
 from featuresList import featuresList
 import copy
 gStyle.SetOptStat(0)
-muonPdgMass = 0.113428
+muonPdgMass = 0.1056
 jpsiPdgMass = 3.0969
 bcPdgMass = 6.2756
 nProcessedFeatures = 26 # 5 corrected pt + 10 processed features + 5 4-vectors energies + 6 trigger and decay channel information
