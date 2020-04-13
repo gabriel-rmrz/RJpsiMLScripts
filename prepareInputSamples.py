@@ -4,13 +4,13 @@ import os, sys, math
 import numpy as np
 from ROOT import gPad, gStyle
 from ROOT import TFile, TTree, TCanvas, TH1, TH1F, Math, TLorentzVector
-from featuresList import featuresList
+from utils.featuresList import featuresList
 import copy
 gStyle.SetOptStat(0)
 muonPdgMass = 0.1056
 jpsiPdgMass = 3.0969
 bcPdgMass = 6.2756
-nProcessedFeatures = 26 # 5 corrected pt + 10 processed features + 5 4-vectors energies + 6 trigger and decay channel information
+nProcessedFeatures = 20 # 5 corrected pt + 10 processed features + 5 4-vectors energies + 6 trigger and decay channel information
 
 def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4):
   if ( bc_p4.M() != 0): 
@@ -53,7 +53,8 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
   nn_unpairedMuEta = unpairedMuon_p4.Eta()
   #print(nn_energyBcRestFrame)
   
-  featuresEntry = np.array([[bcCorrected_p4.Pt()], 
+  featuresEntry = np.array([
+    [bcCorrected_p4.Pt()], 
     [bcCorrected_p4.Px()], 
     [bcCorrected_p4.Py()], 
     [bcCorrected_p4.Pz()], 
@@ -67,7 +68,8 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
     [nn_deltaRMu1Mu2],
     [nn_unpairedMuPhi],
     [nn_unpairedMuPt],
-    [nn_unpairedMuEta]], dtype=np.float32)
+    [nn_unpairedMuEta]], 
+    dtype=np.float32)
 
   return featuresEntry
   
@@ -82,11 +84,11 @@ def bcSelector(event, isBkg = False):
     if((event.Bc_jpsi_mu2_eta[iBc] < -2.4) or (event.Bc_jpsi_mu2_eta[iBc] > 2.4) ):continue
     if((event.Bc_jpsi_mu1_pt[iBc] < 4.0) or (event.Bc_jpsi_mu2_pt[iBc] < 4.0) ): continue
     if((event.Bc_jpsi_mass[iBc] < 2.95) or (event.Bc_jpsi_mass[iBc] > 3.25)): continue
-    if((event.isMuon1Soft[iBc] < 1) or (event.isMuon2Soft[iBc] < 1) ): continue
+    if((event.isMu1Soft[iBc] < 1) or (event.isMu2Soft[iBc] < 1) ): continue
     if(event.Bc_jpsi_pt[iBc] < 8.0): continue
     if(event.Bc_mass[iBc] < 2.0 or event.Bc_mass[iBc] >6.4): continue
-    if((event.truthMatchMuNegative[iBc] < 1 or event.truthMatchMuPositive[iBc] < 1) and not isBkg): continue
-    if(event.truthMatchUnpairedMu[iBc] < 1.0 and not isBkg): continue
+    if((event.truthMatchMu2[iBc] < 1 or event.truthMatchMu1[iBc] < 1) and not isBkg): continue
+    if(event.truthMatchMu[iBc] < 1.0 and not isBkg): continue
     iBcSelected.append(iBc)
   return iBcSelected
 
@@ -135,12 +137,12 @@ def fillProcessedFeaturesArray(featuresProcessed, channel):
 
 
       #featuresEntry = computeProcessedFeatures(event.gen_muonPositive_p4, event.gen_muonNegative_p4, event.gen_unpairedMuon_p4, event.gen_jpsi_p4, event.gen_b_p4)
-      featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchDimuon0[iBc]]]), axis=0)
-      featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTk[iBc]]]), axis=0)
-      featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTkTk[iBc]]]), axis=0)
-      featuresEntry = np.append(featuresEntry, np.array([[event.signalDecayPresent[iBc]]]), axis=0)
-      featuresEntry = np.append(featuresEntry, np.array([[event.normalizationDecayPresent[iBc]]]), axis=0)
-      featuresEntry = np.append(featuresEntry, np.array([[event.background1DecayPresent[iBc]]]), axis=0)
+      #featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchDimuon0[iBc]]]), axis=0)
+      #featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTk[iBc]]]), axis=0)
+      #featuresEntry = np.append(featuresEntry, np.array([[event.triggerMatchJpsiTkTk[iBc]]]), axis=0)
+      #featuresEntry = np.append(featuresEntry, np.array([[event.signalDecayPresent[iBc]]]), axis=0)
+      #featuresEntry = np.append(featuresEntry, np.array([[event.normalizationDecayPresent[iBc]]]), axis=0)
+      #featuresEntry = np.append(featuresEntry, np.array([[event.background1DecayPresent[iBc]]]), axis=0)
       
 
       featuresProcessed = np.append(featuresProcessed,featuresEntry, axis=1)
@@ -155,7 +157,16 @@ def fillGenFeaturesArray(genFeatures, channel):
     if(event.nBc < 1) : continue 
     iBcSelected = bcSelector(event, isBkg = False)
     for iBc in iBcSelected:
-      featuresEntry = np.array([[event.gen_b_p4.Pt()], [event.gen_b_p4.Px()], [event.gen_b_p4.Py()], [event.gen_b_p4.Pz()], [event.gen_b_p4.E()]])
+      featuresEntry = np.array([
+        [event.gen_b_p4.Pt()], [event.gen_b_p4.Px()], [event.gen_b_p4.Py()], [event.gen_b_p4.Pz()], [event.gen_b_p4.E()], [event.gen_b_p4.Eta()], [event.gen_b_p4.Phi()],
+        [event.gen_jpsi_p4.Pt()], [event.gen_jpsi_p4.Px()], [event.gen_jpsi_p4.Py()], [event.gen_jpsi_p4.Pz()], [event.gen_jpsi_p4.E()], [event.gen_jpsi_p4.Eta()], [event.gen_jpsi_p4.Phi()],
+        [event.gen_jpsi_mu1_p4.Pt()], [event.gen_jpsi_mu1_p4.Px()], [event.gen_jpsi_mu1_p4.Py()], [event.gen_jpsi_mu1_p4.Pz()], [event.gen_jpsi_mu1_p4.E()], [event.gen_jpsi_mu1_p4.Eta()], [event.gen_jpsi_mu1_p4.Phi()],
+        [event.gen_jpsi_mu2_p4.Pt()], [event.gen_jpsi_mu2_p4.Px()], [event.gen_jpsi_mu2_p4.Py()], [event.gen_jpsi_mu2_p4.Pz()], [event.gen_jpsi_mu2_p4.E()], [event.gen_jpsi_mu2_p4.Eta()], [event.gen_jpsi_mu2_p4.Phi()],
+        [event.gen_mu_p4.Pt()], [event.gen_mu_p4.Px()], [event.gen_mu_p4.Py()], [event.gen_mu_p4.Pz()], [event.gen_mu_p4.E()], [event.gen_mu_p4.Eta()], [event.gen_mu_p4.Phi()],
+        [event.gen_munu_p4.Pt()], [event.gen_munu_p4.Px()], [event.gen_munu_p4.Py()], [event.gen_munu_p4.Pz()], [event.gen_munu_p4.E()], [event.gen_munu_p4.Eta()], [event.gen_munu_p4.Phi()],
+        [event.gen_taunu1_p4.Pt()], [event.gen_taunu1_p4.Px()], [event.gen_taunu1_p4.Py()], [event.gen_taunu1_p4.Pz()], [event.gen_taunu1_p4.E()], [event.gen_taunu1_p4.Eta()], [event.gen_taunu1_p4.Phi()],
+        [event.gen_taunu2_p4.Pt()], [event.gen_taunu2_p4.Px()], [event.gen_taunu2_p4.Py()], [event.gen_taunu2_p4.Pz()], [event.gen_taunu2_p4.E()], [event.gen_taunu2_p4.Eta()], [event.gen_taunu2_p4.Phi()]
+        ])
       genFeatures = np.append(genFeatures, featuresEntry, axis = 1)
 
 
@@ -180,8 +191,9 @@ def fillFeaturesArray(features, channel):
 
 
 def main():
+  outDir = 'data/'
   nFeatures = len(featuresList) 
-  nGenFeatures = 5
+  nGenFeatures = 56
   features = np.array([[]]* nFeatures, dtype=np.float32)
   genFeatures = np.array([[]]* nGenFeatures, dtype=np.float32)
   featuresProcessed = np.array([[]]*nProcessedFeatures, dtype=np.float32)
@@ -204,8 +216,8 @@ def main():
   print(features.shape)
   
   
-  np.savez_compressed('featuresData.npz', features)
-  np.savez_compressed('featuresProcessedData.npz', featuresProcessed)
+  np.savez_compressed(outDir + 'featuresData.npz', features)
+  np.savez_compressed(outDir + 'featuresProcessedData.npz', featuresProcessed)
   
   print("Done.")
 
