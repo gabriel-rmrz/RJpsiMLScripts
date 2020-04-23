@@ -1,5 +1,5 @@
 import os
-from featuresList import featuresListResults, featuresListInputs, featuresList
+from utils.featuresList import outputFeaturesList, allFeaturesList, featuresList
 
 import numpy as np
 import pandas as pd
@@ -42,43 +42,12 @@ trainingSample = 'muon'
 
 plotsDir = 'plots/dnnFeedForward/'+ trainingSample + '_channel/'
 
+validation_frac = 0.3
 predictionSample = trainingSample
 #predictionSample = 'tau'
 #predictionSample = 'muon'
 #predictionSample = 'mix'
-
-inputFile="featuresData.npz"
-f = np.load(inputFile)#, allow_pickle=True)
-inputData = f["arr_0"]
-inputData = np.swapaxes(inputData, 0, 1)
-validation_frac = 0.3
-
-inputData_tau = inputData[inputData[:,175].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
-inputData_muon = inputData[inputData[:,176].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
-inputData_norm = inputData[inputData[:,176].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
-inputData_norm = inputData_norm[-3000:,:] 
-inputData_sig = inputData[inputData[:,175].astype(int) == 1,] # 28 for signal channel and 29 for normalization channel
-inputData_sig = inputData_sig[:1000,:] 
-inputData_mix = np.append(inputData_norm, inputData_sig, axis=0)
-
-
-inputData = inputData_tau
-if(trainingSample == 'muon'):
-  inputData = inputData_muon
-elif(trainingSample == 'mix'):
-  inputData = inputData_mix
-
-predictionData = inputData_tau
-if(predictionSample == 'muon'):
-  predictionData = inputData_muon
-elif(predictionSample == 'mix'):
-  predictionData = inputData_mix
-
-print(inputData.shape)
-#target=pd.DataFrame(inputData[:,0]/inputData[:,102], columns=['bcPt_gen_reco_ratio'])
-
-target=pd.DataFrame(np.reshape(inputData[:,0],[inputData[:,0].size, 1]), columns=['gen_bc_pt'])
-sc_target = StandardScaler().fit(target)
+allFeaturesList = np.array(allFeaturesList)
 inputFeatures = [ 
   71, 72, 73, 74, 75, 
   76, 77, 78, 79, 80, 81, 82, 83, 84,
@@ -88,47 +57,48 @@ inputFeatures = [
   121, 122, 123, 124, 125,
   131, 132, 133, 134,
   138, 139, 140, 141]
-reg_input=inputData[:,inputFeatures]
-
-#inputDataToDF = np.array([tuple(inputData[i,:]) for i in range(inputData[:,0].size)], dtype=featuresListInputs)
-#df = pd.DataFrame(inputDataToDF)
-df = pd.DataFrame(inputData, columns=featuresListInputs, dtype=np.float32)
-
-sc = StandardScaler().fit(reg_input)
-
-#t_allData, v_allData, t_target, v_target = train_test_split(inputData, target, 
-t_allData, v_allData, t_target, v_target = train_test_split(df, target, 
-                                    test_size=validation_frac, 
-                                    random_state=8, 
-                                    shuffle=True, 
-                                    stratify=inputData[:,176]) # Stratify keep the proportion of signal and normalization samples in the splitted samples.
-print(t_allData.shape)
-print(v_allData.shape)
-print(t_target.shape)
-print(v_target.shape)
-featuresListInputs = np.array(featuresListInputs)
-t_data=t_allData[featuresListInputs[inputFeatures]]
-v_data=v_allData[featuresListInputs[inputFeatures]]
 
 
-scaled_t_data=sc.transform(t_data)
-scaled_v_data=sc.transform(v_data)
-
-scaled_t_target = sc_target.transform(t_target)
-scaled_v_target = sc_target.transform(v_target)
-
-batch_size = 50 
-n_epochs = 3
-dropoutRate = 0.1
-inputData.shape
-
-data_len=scaled_t_data.shape[1]
-
+def get_data_frames(trainingSample, allFeaturesList, inputFeatures):
+  inputFile="data/featuresData.npz"
+  f = np.load(inputFile)
+  inputData = f["arr_0"]
+  inputData = np.swapaxes(inputData, 0, 1)
+  
+  ##175 for signal channel and 176 for normalization channel
+  inputData_tau = inputData[inputData[:,175].astype(int) == 1,]
+  inputData_muon = inputData[inputData[:,176].astype(int) == 1,]
+  inputData_norm = inputData[inputData[:,176].astype(int) == 1,]
+  inputData_norm = inputData_norm[-3000:,:] 
+  inputData_sig = inputData[inputData[:,175].astype(int) == 1,]
+  inputData_sig = inputData_sig[:1000,:] 
+  inputData_mix = np.append(inputData_norm, inputData_sig, axis=0)
+  
+  
+  inputData = inputData_tau
+  if(trainingSample == 'muon'):
+    inputData = inputData_muon
+  elif(trainingSample == 'mix'):
+    inputData = inputData_mix
+  
+  predictionData = inputData_tau
+  if(predictionSample == 'muon'):
+    predictionData = inputData_muon
+  elif(predictionSample == 'mix'):
+    predictionData = inputData_mix
+  
+  allFeaturesDF = pd.DataFrame(inputData, columns=allFeaturesList, dtype=np.float32)
+  targetFeaturesDF = pd.DataFrame(np.reshape(inputData[:,0],[inputData[:,0].size, 1]), columns=['gen_bc_pt'])
+  inputFeaturesDF= pd.DataFrame(inputData[:,inputFeatures], columns=allFeaturesList[inputFeatures])
+  print(type(inputFeaturesDF))
+  return allFeaturesDF, inputFeaturesDF, targetFeaturesDF
+  
 ########################################################################
 ########################################################################
 # Model definition
 ########################################################################
 ########################################################################
+
 def build_regression_model(nInnerLayers, nNodes, dropoutRate):
   model = Sequential()
   model.add(Dense(45, activation="relu", kernel_initializer="glorot_uniform", input_dim=data_len))
@@ -151,29 +121,12 @@ def build_regression_model(nInnerLayers, nNodes, dropoutRate):
   #model.summary()
   return model
 
-#innerLayersNodes = [100, 60, 40, 20] 
-
-histolist = []
-nNodes= [20,40, 60, 80, 100]
-#nNodes= [0]
-
-for nInnerLayers in [1]:
-  K.clear_session()
-  for iNodes1 in nNodes:
-#    for nNodes2 in [50]:#range(10,100,30):
-    model = build_regression_model(nInnerLayers=nInnerLayers, nNodes=nNodes, dropoutRate=dropoutRate)
-    history=model.fit(scaled_t_data , 
-                      scaled_t_target, 
-                      nb_epoch=n_epochs, verbose=1,batch_size=batch_size, 
-                      validation_data=(scaled_v_data , scaled_v_target))
-    histolist.append(pd.DataFrame(history.history, index=history.epoch))
-
-historydf= pd.concat(histolist, axis=1)
-metrics_reported = histolist[0].columns
-idx = pd.MultiIndex.from_product([nNodes, metrics_reported],
-                             names=['nNodes', 'metric'])
-historydf.columns = idx
-def plotHistory(historydf):
+def plot_history(histoList, histoLabels):
+  historydf= pd.concat(histoList, axis=1)
+  metrics_reported = histoList[0].columns
+  idx = pd.MultiIndex.from_product([histoLabels, metrics_reported],
+                               names=['nNodes', 'metric'])
+  historydf.columns = idx
   plt.figure(num=None, figsize=(5, 5), dpi = 300, facecolor='w', edgecolor='k') 
   ax = plt.subplot(211)
   historydf.xs('loss', axis = 1, level = 'metric').plot(ax=ax)
@@ -186,17 +139,76 @@ def plotHistory(historydf):
   plt.savefig(plotsDir+'loss_and_mse_history.png')
   plt.clf()
 
-plotHistory(historydf)
+allDF, inputDF, targetDF = get_data_frames(trainingSample=trainingSample, allFeaturesList=allFeaturesList, inputFeatures=inputFeatures)
+
+
+t_allData, v_allData, t_target, v_target = train_test_split(allDF, targetDF, 
+                                    test_size=validation_frac, 
+                                    random_state=8, 
+                                    shuffle=True, 
+                                    stratify=allDF['signalDecayPresent'])
+
+t_input=t_allData[allFeaturesList[inputFeatures]]
+v_input=v_allData[allFeaturesList[inputFeatures]]
+
+sc = StandardScaler().fit(inputDF)
+scaled_t_input=sc.transform(t_input)
+scaled_v_input=sc.transform(v_input)
+
+sc_target = StandardScaler().fit(targetDF)
+scaled_t_target_tmp = sc_target.transform(t_target)
+scaled_v_target_tmp = sc_target.transform(v_target)
+
+scaled_t_target = pd.DataFrame(np.reshape(scaled_t_target_tmp[:,0],[scaled_t_target_tmp.size, 1]), columns=['gen_bc_pt'])
+scaled_v_target = pd.DataFrame(np.reshape(scaled_v_target_tmp[:,0],[scaled_v_target_tmp.size, 1]), columns=['gen_bc_pt'])
+
+#######
+
+batch_size = 50 
+n_epochs = 200
+dropoutRate = 0.1
+
+data_len=scaled_t_input.shape[1]
+#innerLayersNodes = [100, 60, 40, 20] 
+
+histoList = []
+predictionList = []
+nNodes= [20,40, 60, 80, 100]
+#nNodes= [0]
+
+for nInnerLayers in [1]:
+  K.clear_session()
+  for iNodes1 in nNodes:
+#    for nNodes2 in [50]:#range(10,100,30):
+    model = build_regression_model(nInnerLayers=nInnerLayers, nNodes=nNodes, dropoutRate=dropoutRate)
+    history=model.fit(scaled_t_input , 
+                      scaled_t_target, 
+                      nb_epoch=n_epochs, verbose=1,batch_size=batch_size, 
+                      validation_data=(scaled_v_input , scaled_v_target),
+                      callbacks = [
+                          EarlyStopping(monitor='val_loss', patience = 10, verbose=1),
+                          ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4, verbose=1),
+                          TerminateOnNaN()]
+                      )
+    histoList.append(pd.DataFrame(history.history, index=history.epoch))
+    
+    prediction_scaled_pt = model.predict(scaled_v_input)
+    prediction_pt = sc_target.inverse_transform(prediction_scaled_pt)
+    predictionList.append(pd.DataFrame(prediction_pt, columns=['bc_pt']))
+
+plot_history(histoList, histoLabels=nNodes)
+
 
 plt.figure(num=None, figsize=(6, 5), dpi = 300, facecolor='w', edgecolor='k') 
-minVal = 10. 
-maxVal = 50.
-binwidth =1 
+minVal = -2. 
+maxVal = 6.
+binwidth =.2 
 bins=np.arange(minVal, maxVal + binwidth, binwidth)
-v_target['gen_bc_pt'].plot.hist(bins=bins, histtype = 'step')
+scaled_v_target['gen_bc_pt'].plot.hist(bins=bins, histtype = 'step')
 plt.title("gen_bc_pt")
 plt.savefig(plotsDir+'targetDist.png')
 plt.clf()
+
 
 minVal = 10. 
 maxVal = 50.
@@ -230,19 +242,14 @@ profileFig.savefig(plotsDir+'profile.png')
 plt.clf()
 
 
-prediction_scaled_pt = model.predict(scaled_v_data)
+prediction_scaled_pt = model.predict(scaled_v_input)
 prediction_pt = sc_target.inverse_transform(prediction_scaled_pt)
-print(type(prediction_pt))
-print(prediction_pt.shape)
-#v_allData['bc_predictedPt'] = prediction_pt[:,0]
 prediction_df = pd.DataFrame(prediction_pt, columns=['bc_pt'])
 x = np.linspace(0., 60., 1000)
-plt.figure(num=None, figsize=(6, 6), dpi = 300, facecolor='w', edgecolor='k') 
 
+plt.figure(num=None, figsize=(6, 6), dpi = 300, facecolor='w', edgecolor='k') 
 plt.scatter(v_target['gen_bc_pt'], prediction_df['bc_pt'], c='tab:orange', alpha = 0.2, label = 'NN prediction') 
 plt.scatter(v_target['gen_bc_pt'], v_allData['bcCorrected_pt'], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-#plt.scatter(v_target[:,0], prediction_pt, c='tab:red', alpha = 0.2) 
-#plt.scatter(v_target[:,0], prediction_pt, c='tab:red', alpha = 0.2, label = 'corrected_data') 
 plt.plot(x, x + 0, '-b', label= 'Truth MC')
 plt.legend(loc='upper left', fontsize='x-small')
 plt.grid(True) 

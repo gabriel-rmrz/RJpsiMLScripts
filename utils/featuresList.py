@@ -128,7 +128,7 @@ featuresList=[
 'truthMatchMu2',
 'truthMatchMu']
 
-featuresListInputs = [
+allFeaturesList = [
 'gen_b_pt',
 'gen_b_px',
 'gen_b_py',
@@ -499,7 +499,7 @@ featuresListInputsOld = [
 ('truthMatchMu2', np.float32),
 ('truthMatchMu', np.float32)]
 
-featuresListResults = [
+outputFeaturesList = [
 ('nn_correctedRatio_pt', np.float32),
 ('nn_predictedRatio_pt', np.float32),
 ('nn_predicted_pt', np.float32),
