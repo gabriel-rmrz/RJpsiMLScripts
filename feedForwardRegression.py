@@ -37,8 +37,8 @@ print(tf.__version__)
 ########################################################################
 ########################################################################
 #trainingSample = 'tau'
-trainingSample = 'muon'
-#trainingSample = 'mix'
+#trainingSample = 'muon'
+trainingSample = 'mix'
 
 plotsDir = 'plots/dnnFeedForward/'+ trainingSample + '_channel/'
 
@@ -99,14 +99,13 @@ def get_data_frames(trainingSample, allFeaturesList, inputFeatures):
 ########################################################################
 ########################################################################
 
-def build_regression_model(nInnerLayers, nNodes, dropoutRate):
+def build_regression_model(nInnerLayers, iNodes, dropoutRate):
   model = Sequential()
   model.add(Dense(45, activation="relu", kernel_initializer="glorot_uniform", input_dim=data_len))
   #model.add(Dropout(dropoutRate))
   for iLayer in range(nInnerLayers):
-    if(nNodes[iLayer] != 0):
-      model.add(Dense(nNodes[iLayer], activation="relu", kernel_initializer="glorot_uniform"))
-      model.add(Dropout(dropoutRate))
+    model.add(Dense(iNodes, activation="relu", kernel_initializer="glorot_uniform"))
+    model.add(Dropout(dropoutRate))
   #model.add(Dense(100, activation="relu", kernel_initializer="glorot_uniform"))
   #model.add(Dropout(dropoutRate))
   #model.add(Dense(60, activation="relu", kernel_initializer="glorot_uniform"))
@@ -125,9 +124,10 @@ def plot_history(histoList, histoLabels):
   historydf= pd.concat(histoList, axis=1)
   metrics_reported = histoList[0].columns
   idx = pd.MultiIndex.from_product([histoLabels, metrics_reported],
-                               names=['nNodes', 'metric'])
+                               names=['nLayers-nNodes', 'metric'])
   historydf.columns = idx
-  plt.figure(num=None, figsize=(5, 5), dpi = 300, facecolor='w', edgecolor='k') 
+  plt.figure(num=None, figsize=(5, 6), dpi = 300, facecolor='w', edgecolor='k') 
+  plt.legend(fontsize='x-small')
   ax = plt.subplot(211)
   historydf.xs('loss', axis = 1, level = 'metric').plot(ax=ax)
   plt.title("Loss")
@@ -139,6 +139,21 @@ def plot_history(histoList, histoLabels):
   plt.savefig(plotsDir+'loss_and_mse_history.png')
   plt.clf()
 
+def plot_ratios(predictionGenRatioList, labels):
+  df= pd.concat(predictionGenRatioList, axis=1)
+  metrics_reported = predictionGenRatioList[0].columns
+  idx = pd.MultiIndex.from_product([labels, metrics_reported],
+                               names=['nLayers-nNodes', 'metric'])
+  df.columns = idx
+  plt.figure(num=None, figsize=(5, 6), dpi = 300, facecolor='w', edgecolor='k') 
+  plt.legend(fontsize='x-small')
+  df.xs('ratio_bc_pt', axis = 1, level = 'metric').plot.hist(bins=30,histtype = 'step')
+  plt.title("Ratio")
+  plt.xlabel("")
+  plt.tight_layout()
+  plt.savefig(plotsDir+'ratios.png')
+  plt.clf()
+  
 allDF, inputDF, targetDF = get_data_frames(trainingSample=trainingSample, allFeaturesList=allFeaturesList, inputFeatures=inputFeatures)
 
 
@@ -172,15 +187,18 @@ data_len=scaled_t_input.shape[1]
 #innerLayersNodes = [100, 60, 40, 20] 
 
 histoList = []
+histoLabels = []
 predictionList = []
-nNodes= [20,40, 60, 80, 100]
-#nNodes= [0]
+predictionLabels = []
+predictionGenRatioList = []
+#nNodes= [20,40, 60, 80, 100]
+nNodes= [60]
 
-for nInnerLayers in [1]:
-  K.clear_session()
-  for iNodes1 in nNodes:
+for nInnerLayers in [1, 2, 3, 4 , 5, 6, 7]:
+  for iNodes in nNodes:
+    K.clear_session()
 #    for nNodes2 in [50]:#range(10,100,30):
-    model = build_regression_model(nInnerLayers=nInnerLayers, nNodes=nNodes, dropoutRate=dropoutRate)
+    model = build_regression_model(nInnerLayers=nInnerLayers, iNodes=iNodes, dropoutRate=dropoutRate)
     history=model.fit(scaled_t_input , 
                       scaled_t_target, 
                       nb_epoch=n_epochs, verbose=1,batch_size=batch_size, 
@@ -191,12 +209,21 @@ for nInnerLayers in [1]:
                           TerminateOnNaN()]
                       )
     histoList.append(pd.DataFrame(history.history, index=history.epoch))
+    histoLabels.append("nLay_%d-nNod_%d" % (nInnerLayers, iNodes))
     
     prediction_scaled_pt = model.predict(scaled_v_input)
     prediction_pt = sc_target.inverse_transform(prediction_scaled_pt)
-    predictionList.append(pd.DataFrame(prediction_pt, columns=['bc_pt']))
+    prediction_pt_df = pd.DataFrame(prediction_pt, columns=['bc_pt'])
+    prediction_pt_ratio_df = pd.DataFrame(prediction_pt_df['bc_pt']/v_allData['gen_b_pt'], columns=['ratio_bc_pt'])
+    predictionLabels.append("nLay_%d-nNod_%d--Mean= %5.3f, RMS= %5.3f" % (nInnerLayers, iNodes, prediction_pt_ratio_df['ratio_bc_pt'].mean(), prediction_pt_ratio_df['ratio_bc_pt'].std()))
+    #predictionGenRatioList.append(pd.DataFrame(prediction_pt, columns=['bc_pt']))
 
-plot_history(histoList, histoLabels=nNodes)
+
+
+    predictionGenRatioList.append(pd.DataFrame(prediction_pt_df['bc_pt']/v_allData['gen_b_pt'], columns=['ratio_bc_pt']))
+
+plot_history(histoList, histoLabels=histoLabels)
+plot_ratios(predictionGenRatioList=predictionGenRatioList, labels=predictionLabels)
 
 
 plt.figure(num=None, figsize=(6, 5), dpi = 300, facecolor='w', edgecolor='k') 
