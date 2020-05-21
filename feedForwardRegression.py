@@ -1,8 +1,10 @@
 import os
-from utils.featuresList import outputFeaturesList, allFeaturesList, featuresList
+import argparse
+
 
 import numpy as np
 import pandas as pd
+import root_pandas
 from root_numpy import array2tree, array2root, fill_hist
 from ROOT import TH2, TH2F, gROOT, TCanvas
 import ROOT
@@ -31,47 +33,80 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TerminateOnNaN
 import tensorflow as tf
 print(tf.__version__)
 
-########################################################################
-########################################################################
-# Preparation of the input featues
-########################################################################
-########################################################################
-#trainingSample = 'tau'
-#trainingSample = 'muon'
-trainingSample = 'mix'
+def get_parameters():
+  
+  CLI = argparse.ArgumentParser()
+  CLI.add_argument(
+          "--nodes",
+          nargs="*",
+          type=int,
+          default = [50, 50],
+          )
+  CLI.add_argument(
+          "--valFrac",
+          nargs="*",
+          type=float,
+          default = 0.3,
+          )
+  CLI.add_argument(
+          "--batchSize",
+          nargs="*",
+          type=int,
+          default = 100,
+          )
+  CLI.add_argument(
+          "--nMaxEpochs",
+          nargs="*",
+          type=int,
+          default =100,
+          )
+  CLI.add_argument(
+          "--dropoutRate",
+          nargs="*",
+          type=float,
+          default = 0.3,
+          )
+  CLI.add_argument(
+          "--trainingSample",
+          nargs="?",
+          type=str,
+          default = 'mix',
+          )
+  args = CLI.parse_args()
 
-plotsDir = 'plots/dnnFeedForward/'+ trainingSample + '_channel/'
+  validation_frac = args.valFrac
+  batch_size = args.batchSize
+  n_epochs = args.nMaxEpochs
+  dropoutRate = args.dropoutRate
+  nodes= np.array(args.nodes) 
+  trainingSample = args.trainingSample # Possible values: 'tau', 'muon', 'mix'
 
-validation_frac = 0.3
-predictionSample = trainingSample
-#predictionSample = 'tau'
-#predictionSample = 'muon'
-#predictionSample = 'mix'
-allFeaturesList = np.array(allFeaturesList)
-inputFeatures = [ 
-  71, 72, 73, 74, 75, 
-  76, 77, 78, 79, 80, 81, 82, 83, 84,
-  86, 87, 88, 89, 90, 91, 92, 93, 94,
-  101, 102, 103, 104, 105,
-  111, 112, 113, 114,
-  121, 122, 123, 124, 125,
-  131, 132, 133, 134,
-  138, 139, 140, 141]
+  #print("This is the output: %r" % args.nodes)
+  print("This is the output: %s" % args.trainingSample)
+  print("This is the output: %3.2f" % args.valFrac)
+  print("This is the output: %3.2f" % args.dropoutRate)
+  print("This is the output: %d" % args.batchSize)
+  print("This is the output: %d" % args.nMaxEpochs)
+
+  return validation_frac, batch_size, n_epochs, dropoutRate, nodes, trainingSample
 
 
-def get_data_frames(trainingSample, allFeaturesList, inputFeatures):
+def get_data_frames(trainingSample, predictionSample,  allFeaturesList, inputFeatures):
   inputFile="data/featuresData.npz"
   f = np.load(inputFile)
   inputData = f["arr_0"]
   inputData = np.swapaxes(inputData, 0, 1)
   
+  #with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+  #    print(inputData[:,175])
+  #exit()
   ##175 for signal channel and 176 for normalization channel
   inputData_tau = inputData[inputData[:,175].astype(int) == 1,]
   inputData_muon = inputData[inputData[:,176].astype(int) == 1,]
   inputData_norm = inputData[inputData[:,176].astype(int) == 1,]
-  inputData_norm = inputData_norm[-3000:,:] 
+  nSignalInMix = (int)(inputData_muon[:,0].size /3)
   inputData_sig = inputData[inputData[:,175].astype(int) == 1,]
-  inputData_sig = inputData_sig[:1000,:] 
+  inputData_sig = inputData_sig[:nSignalInMix,:] 
   inputData_mix = np.append(inputData_norm, inputData_sig, axis=0)
   
   
@@ -87,11 +122,14 @@ def get_data_frames(trainingSample, allFeaturesList, inputFeatures):
   elif(predictionSample == 'mix'):
     predictionData = inputData_mix
   
-  allFeaturesDF = pd.DataFrame(inputData, columns=allFeaturesList, dtype=np.float32)
-  targetFeaturesDF = pd.DataFrame(np.reshape(inputData[:,0],[inputData[:,0].size, 1]), columns=['gen_bc_pt'])
-  inputFeaturesDF= pd.DataFrame(inputData[:,inputFeatures], columns=allFeaturesList[inputFeatures])
-  print(type(inputFeaturesDF))
-  return allFeaturesDF, inputFeaturesDF, targetFeaturesDF
+  allFeatures = inputData
+  targetFeatures = np.reshape(inputData[:,0]/inputData[:,102],[inputData[:,0].size, 1])
+  #mu, sigma = 0., 1.
+  #targetFeatures = np.reshape(np.random.normal(mu, sigma, inputData[:,0].size), inputData[:,0].size, 1)
+
+  inputFeatures = inputData[:,inputFeatures]
+
+  return allFeatures, inputFeatures, targetFeatures
   
 ########################################################################
 ########################################################################
@@ -99,388 +137,102 @@ def get_data_frames(trainingSample, allFeaturesList, inputFeatures):
 ########################################################################
 ########################################################################
 
-def build_regression_model(nInnerLayers, iNodes, dropoutRate):
+def build_regression_model(nodes, dropoutRate, data_len):
   model = Sequential()
   model.add(Dense(45, activation="relu", kernel_initializer="glorot_uniform", input_dim=data_len))
-  #model.add(Dropout(dropoutRate))
-  for iLayer in range(nInnerLayers):
-    model.add(Dense(iNodes, activation="relu", kernel_initializer="glorot_uniform"))
+  model.add(Dropout(dropoutRate))
+  for iNode in nodes:
+    model.add(Dense(iNode, activation="relu", kernel_initializer="glorot_uniform"))
     model.add(Dropout(dropoutRate))
-  #model.add(Dense(100, activation="relu", kernel_initializer="glorot_uniform"))
-  #model.add(Dropout(dropoutRate))
-  #model.add(Dense(60, activation="relu", kernel_initializer="glorot_uniform"))
-  #model.add(Dropout(dropoutRate))
-  #model.add(Dense(40, activation="relu", kernel_initializer="glorot_uniform"))
-  #model.add(Dropout(dropoutRate))
-  #model.add(Dense(20, activation="relu", kernel_initializer="glorot_uniform"))
-  #model.add(Dropout(dropoutRate))
   model.add(Dense(1, kernel_initializer="glorot_uniform"))
   print('compiling')
   model.compile(loss='mse', optimizer='adam',metrics=['mse', 'mae'])
-  #model.summary()
+  model.summary() 
   return model
 
-def plot_history(histoList, histoLabels):
-  historydf= pd.concat(histoList, axis=1)
-  metrics_reported = histoList[0].columns
-  idx = pd.MultiIndex.from_product([histoLabels, metrics_reported],
-                               names=['nLayers-nNodes', 'metric'])
-  historydf.columns = idx
-  plt.figure(num=None, figsize=(5, 6), dpi = 300, facecolor='w', edgecolor='k') 
-  plt.legend(fontsize='x-small')
-  ax = plt.subplot(211)
-  historydf.xs('loss', axis = 1, level = 'metric').plot(ax=ax)
-  plt.title("Loss")
-  ax = plt.subplot(212)
-  historydf.xs('mean_squared_error', axis = 1, level = 'metric').plot(ax=ax)
-  plt.title("MSE")
-  plt.xlabel("Epochs")
-  plt.tight_layout()
-  plt.savefig(plotsDir+'loss_and_mse_history.png')
-  plt.clf()
+def main():
+  from utils.featuresList import outputFeaturesList, allFeaturesList, featuresList
+  validation_frac, batch_size, n_epochs, dropoutRate, nodes, trainingSample = get_parameters()
 
-def plot_ratios(predictionGenRatioList, labels):
-  df= pd.concat(predictionGenRatioList, axis=1)
-  metrics_reported = predictionGenRatioList[0].columns
-  idx = pd.MultiIndex.from_product([labels, metrics_reported],
-                               names=['nLayers-nNodes', 'metric'])
-  df.columns = idx
-  plt.figure(num=None, figsize=(5, 6), dpi = 300, facecolor='w', edgecolor='k') 
-  plt.legend(fontsize='x-small')
-  df.xs('ratio_bc_pt', axis = 1, level = 'metric').plot.hist(bins=30,histtype = 'step')
-  plt.title("Ratio")
-  plt.xlabel("")
-  plt.tight_layout()
-  plt.savefig(plotsDir+'ratios.png')
-  plt.clf()
+  ########################################################################
+  ########################################################################
+  # Preparation of the input featues
+  ########################################################################
+  ########################################################################
   
-allDF, inputDF, targetDF = get_data_frames(trainingSample=trainingSample, allFeaturesList=allFeaturesList, inputFeatures=inputFeatures)
+  plotsDir = 'plots/dnnFeedForward/'+ trainingSample + '_channel/'
+  resultsDir = 'results/dnnFeedForward/' + trainingSample + '_channel/'
+  
+  predictionSample = trainingSample
 
+  allFeaturesList = np.array(allFeaturesList)
+  inputFeatures = [ 
+    71, 72, 73, 74, 75, 
+    76, 77, 78, 79, 80, 81, 82, 83, 84,
+    86, 87, 88, 89, 90, 91, 92, 93, 94,
+    101, 102, 103, 104, 105,
+    111, 112, 113, 114,
+    121, 122, 123, 124, 125,
+    131, 132, 133, 134,
+    138, 139, 140, 141]
+  allData, inputData, targetData = get_data_frames(trainingSample=trainingSample, predictionSample=predictionSample, allFeaturesList=allFeaturesList, inputFeatures=inputFeatures)
 
-t_allData, v_allData, t_target, v_target = train_test_split(allDF, targetDF, 
-                                    test_size=validation_frac, 
-                                    random_state=8, 
-                                    shuffle=True, 
-                                    stratify=allDF['signalDecayPresent'])
+  t_allData, v_allData, t_target, v_target = train_test_split(allData, targetData, 
+                                      test_size=validation_frac) 
+                                      #test_size=validation_frac, 
+                                      #random_state=8, 
+                                      #shuffle=True,
+                                      #stratify=allData[:,175])
+  t_input=t_allData[:, inputFeatures]
+  v_input=v_allData[:, inputFeatures]
+  sc = StandardScaler().fit(inputData)
+  scaled_t_input=sc.transform(t_input)
+  scaled_v_input=sc.transform(v_input)
 
-t_input=t_allData[allFeaturesList[inputFeatures]]
-v_input=v_allData[allFeaturesList[inputFeatures]]
+  #######
+  data_len=scaled_t_input.shape[1]
+  K.clear_session()
+  model = build_regression_model(nodes=nodes, dropoutRate=dropoutRate, data_len=data_len)
+  history=model.fit(scaled_t_input , 
+                    t_target, 
+                    epochs=n_epochs, verbose=2, batch_size=batch_size, 
+                    #validation_data=(scaled_v_input , v_target)
+                    validation_data=(scaled_v_input , v_target),
+                    callbacks = [
+                        EarlyStopping(monitor='val_loss', patience = 10, verbose=0),
+                        ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=10, verbose=0),
+                        TerminateOnNaN()]
+                    )
+  
+  history_df = pd.DataFrame(history.history, index=history.epoch)
+  prediction_ratio_pt = model.predict(scaled_v_input)
+  
+  print(v_target.shape)
+  print(prediction_ratio_pt.shape)
 
-sc = StandardScaler().fit(inputDF)
-scaled_t_input=sc.transform(t_input)
-scaled_v_input=sc.transform(v_input)
+  prediction_pt_df = pd.DataFrame(prediction_ratio_pt[:,0]*v_allData[:,102], columns=['bc_pt_predicted'])
+  prediction_pt_ratio_df = pd.DataFrame(prediction_ratio_pt/v_target, columns=['bc_ptRatio_predictedGen'])
+  #prediction_pt_ratio_df = pd.DataFrame(prediction_ratio_pt[:,0]/v_target, columns=['gaussianRatio'])
+  #import scipy
+  #print(scipy.stats.skew(prediction_ratio_pt[:,0]))
+  
+  prediction_pt_ratio_df.to_root('testPrediction.root', key='tree')
+  corrected_pt_ratio_df = pd.DataFrame(v_allData[:,56]/v_allData[:,0], columns=['bc_ptRatio_correctedGen'])
+  
+  outputFile = resultsDir + "results-nodes"
+  historyFile = resultsDir + "history-nodes"
+  for node in nodes:
+      outputFile += "_%d" % node
+      historyFile += "_%d" % node
 
-sc_target = StandardScaler().fit(targetDF)
-scaled_t_target_tmp = sc_target.transform(t_target)
-scaled_v_target_tmp = sc_target.transform(v_target)
+  outputFile += ".root"
+  historyFile += ".root"
+  
+  v_allDF = pd.DataFrame(v_allData, columns=allFeaturesList, dtype=np.float32)
+  results_df = pd.concat([prediction_pt_df, prediction_pt_ratio_df, corrected_pt_ratio_df, v_allDF], axis=1)
+  results_df.to_root(outputFile, key='tree')
+  history_df.to_root(historyFile, key='historyTree')
+  #predictionLabel = "nLay_%d-nNod_%d--Mean= %5.3f, RMS= %5.3f" % (Len(nodes), nodes, prediction_pt_ratio_df['ratio_bc_pt'].mean(), prediction_pt_ratio_df['ratio_bc_pt'].std()))
 
-scaled_t_target = pd.DataFrame(np.reshape(scaled_t_target_tmp[:,0],[scaled_t_target_tmp.size, 1]), columns=['gen_bc_pt'])
-scaled_v_target = pd.DataFrame(np.reshape(scaled_v_target_tmp[:,0],[scaled_v_target_tmp.size, 1]), columns=['gen_bc_pt'])
-
-#######
-
-batch_size = 50 
-n_epochs = 200
-dropoutRate = 0.1
-
-data_len=scaled_t_input.shape[1]
-#innerLayersNodes = [100, 60, 40, 20] 
-
-histoList = []
-histoLabels = []
-predictionList = []
-predictionLabels = []
-predictionGenRatioList = []
-#nNodes= [20,40, 60, 80, 100]
-nNodes= [60]
-
-for nInnerLayers in [1, 2, 3, 4 , 5, 6, 7]:
-  for iNodes in nNodes:
-    K.clear_session()
-#    for nNodes2 in [50]:#range(10,100,30):
-    model = build_regression_model(nInnerLayers=nInnerLayers, iNodes=iNodes, dropoutRate=dropoutRate)
-    history=model.fit(scaled_t_input , 
-                      scaled_t_target, 
-                      nb_epoch=n_epochs, verbose=1,batch_size=batch_size, 
-                      validation_data=(scaled_v_input , scaled_v_target),
-                      callbacks = [
-                          EarlyStopping(monitor='val_loss', patience = 10, verbose=1),
-                          ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4, verbose=1),
-                          TerminateOnNaN()]
-                      )
-    histoList.append(pd.DataFrame(history.history, index=history.epoch))
-    histoLabels.append("nLay_%d-nNod_%d" % (nInnerLayers, iNodes))
-    
-    prediction_scaled_pt = model.predict(scaled_v_input)
-    prediction_pt = sc_target.inverse_transform(prediction_scaled_pt)
-    prediction_pt_df = pd.DataFrame(prediction_pt, columns=['bc_pt'])
-    prediction_pt_ratio_df = pd.DataFrame(prediction_pt_df['bc_pt']/v_allData['gen_b_pt'], columns=['ratio_bc_pt'])
-    predictionLabels.append("nLay_%d-nNod_%d--Mean= %5.3f, RMS= %5.3f" % (nInnerLayers, iNodes, prediction_pt_ratio_df['ratio_bc_pt'].mean(), prediction_pt_ratio_df['ratio_bc_pt'].std()))
-    #predictionGenRatioList.append(pd.DataFrame(prediction_pt, columns=['bc_pt']))
-
-
-
-    predictionGenRatioList.append(pd.DataFrame(prediction_pt_df['bc_pt']/v_allData['gen_b_pt'], columns=['ratio_bc_pt']))
-
-plot_history(histoList, histoLabels=histoLabels)
-plot_ratios(predictionGenRatioList=predictionGenRatioList, labels=predictionLabels)
-
-
-plt.figure(num=None, figsize=(6, 5), dpi = 300, facecolor='w', edgecolor='k') 
-minVal = -2. 
-maxVal = 6.
-binwidth =.2 
-bins=np.arange(minVal, maxVal + binwidth, binwidth)
-scaled_v_target['gen_bc_pt'].plot.hist(bins=bins, histtype = 'step')
-plt.title("gen_bc_pt")
-plt.savefig(plotsDir+'targetDist.png')
-plt.clf()
-
-
-minVal = 10. 
-maxVal = 50.
-binwidth = 1 
-bins=np.arange(minVal, maxVal + binwidth, binwidth)
-v_allData['gen_b_pt'].plot.hist(bins=bins, histtype = 'step')
-plt.title("genBc_pt")
-plt.savefig(plotsDir+'oldTargetDist.png')
-plt.clf()
-
-plt.ylim(0., 2)
-
-minVal = 10. 
-maxVal = 50.
-binwidth = 4 
-bins=np.arange(minVal, maxVal + binwidth, binwidth)
-v_allData_barrel = v_allData.query('abs(gen_jpsi_mu1_Eta)< 1.2 & abs(gen_jpsi_mu2_Eta) < 1.2')
-v_allData_endcap = v_allData.query('abs(gen_jpsi_mu1_Eta)> 1.2 | abs(gen_jpsi_mu2_Eta) > 1.2')
-bcPt_reco_gen_ratio_barrel = v_allData_barrel['Bc_pt']/v_allData_barrel['gen_b_pt']
-bcPt_reco_gen_ratio_endcap = v_allData_endcap['Bc_pt']/v_allData_endcap['gen_b_pt']
-bcPt_gen_barrel = v_allData_barrel['gen_b_pt']
-bcPt_gen_endcap = v_allData_endcap['gen_b_pt']
-#profilePlot = sns.regplot(x= v_allData['gen_b_pt'], y=v_target['bcPt_gen_reco_ratio'], x_bins=15, fit_reg=None)
-profilePlot = sns.regplot(x= bcPt_gen_barrel, y=bcPt_reco_gen_ratio_barrel, label='barrel', color = 'black', x_bins=bins, fit_reg=None)
-profilePlot = sns.regplot(x= bcPt_gen_endcap, y=bcPt_reco_gen_ratio_endcap, label='endcap', color = 'red', x_bins=bins, fit_reg=None)
-profileFig = profilePlot.get_figure()
-#profileFig.legend('lower center', fontsize='x-small')
-plt.ylabel("recoBc_pt/ genBc_pt")
-profileFig.legend()
-profileFig.savefig(plotsDir+'profile.png')
-plt.clf()
-
-
-prediction_scaled_pt = model.predict(scaled_v_input)
-prediction_pt = sc_target.inverse_transform(prediction_scaled_pt)
-prediction_df = pd.DataFrame(prediction_pt, columns=['bc_pt'])
-x = np.linspace(0., 60., 1000)
-
-plt.figure(num=None, figsize=(6, 6), dpi = 300, facecolor='w', edgecolor='k') 
-plt.scatter(v_target['gen_bc_pt'], prediction_df['bc_pt'], c='tab:orange', alpha = 0.2, label = 'NN prediction') 
-plt.scatter(v_target['gen_bc_pt'], v_allData['bcCorrected_pt'], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-plt.plot(x, x + 0, '-b', label= 'Truth MC')
-plt.legend(loc='upper left', fontsize='x-small')
-plt.grid(True) 
-plt.xlabel("pt(Truth MC) [GeV]")
-plt.ylabel("pt [GeV]")
-plt.savefig(plotsDir+'sPtComparison.png')
-plt.clf()
-
-exit()
-historydf[['loss', 'val_loss']].plot()
-plt.title('loss')
-
-
-plt.figure(num=None, figsize=(3, 3), dpi = 300, facecolor='w', edgecolor='k') 
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.yscale('log')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
-plt.savefig(plotsDir+'loss_histo.png')
-#plt.show()
-
-plt.plot(history.history['mean_squared_error'])
-plt.plot(history.history['val_mean_squared_error'])
-plt.title('model mse')
-plt.yscale('log')
-plt.ylabel('mse')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
-#plt.show()
-
-plt.plot(history.history['mean_absolute_error'])
-plt.plot(history.history['val_mean_absolute_error'])
-plt.title('model mae')
-plt.yscale('log')
-plt.ylabel('mae')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
-plt.clf()
-
-
-exit()
-
-#x = np.linspace(-150., 150., 1000)
-#plt.scatter(v_target[:,1], prediction_pz, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
-#plt.scatter(v_target[:,1], v_allData[:,8], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-#plt.scatter(v_target[:,1], prediction_pz, c='tab:red', alpha = 0.2)
-#plt.plot(x, x + 0, '-b', label= 'Truth MC')
-#plt.legend(loc='upper left', fontsize='x-small')
-#plt.grid(True)
-#plt.xlabel("pz(Truth MC) [GeV]")
-#plt.ylabel("pz(NN prediction) [GeV]")
-#plt.savefig(plotsDir+'sPzComparison.png')
-#plt.clf()
-
-x = np.linspace(0., 200., 1000)
-#plt.scatter(v_target[:,2], prediction_E, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
-#plt.scatter(v_target[:,2], v_allData[:,9], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-plt.plot(x, x + 0, '-b', label= 'Truth MC')
-#plt.scatter(v_target[:,2], prediction_E, c='tab:blue', alpha = 0.2)
-#plt.scatter(v_target[:,2], prediction_E, c='tab:red', alpha = 0.2)
-plt.legend(loc='upper left', fontsize='x-small')
-plt.grid(True)
-plt.xlabel("Energy(Truth MC) [GeV]")
-plt.ylabel("Energy(NN prediction) [GeV]")
-#plt.savefig(plotsDir+'sEnergyComparison.png')
-plt.clf()
-
-minVal = 0
-maxVal = 60
-binwidth = 4
-bins=range(minVal, maxVal + binwidth, binwidth)
-#plt.hist(v_data[:,4], bins=bins, color='tab:gray', label='Non corrected', histtype = 'step', density=True)
-#plt.hist(prediction_E, bins=bins, color='tab:orange', label='NN prediction', histtype = 'step', density=True)
-#plt.hist(v_target[:,2], bins=bins,  color='tab:cyan', label='Jona recipy', histtype = 'step', density=True)
-plt.legend(loc='upper right', fontsize='x-small')
-#plt.xlim(-50,50)
-#plt.grid(True)
-plt.xlabel("Energy [GeV]")
-#plt.savefig(plotsDir+'hEnergyComparison.png')
-plt.clf()
-
-
-
-
-########################################################################3
-v_pt_measured = v_allData['Bc_pt']
-v_pt_corrected = v_allData['bcCorrected_pt']
-v_pt_target = v_target*v_allData['Bc_pt']
-v_pt_predicted = prediction_pt['prediction_p4']*v_allData['Bc_pt']
-
-
-
-minVal = 0. 
-maxVal = 2.
-binwidth =0.1 
-nbins=20
-bins=np.arange(minVal, maxVal + binwidth, binwidth)
-ratio_corrected = v_pt_corrected/v_pt_target
-ratio_predicted = v_pt_predicted/v_pt_target
-print(ratio_predicted.shape)
-label_corrected = 'Jona recipy (mean={:5.3f}, std={:5.3f})'.format(np.mean(ratio_corrected), np.std(ratio_corrected))
-label_predicted = 'Predicted by NN (mean={:5.3f}, std={:5.3f})'.format(np.mean(ratio_predicted), np.std(ratio_predicted))
-plt.hist(ratio_predicted, bins=bins, color='orange', label=label_predicted, histtype = 'step', density=True)
-plt.hist(ratio_corrected, bins=bins, color='tab:cyan', label=label_corrected, histtype = 'step', density=True)
-plt.legend(loc='upper left', fontsize='x-small')
-plt.savefig(plotsDir+'hPtComparison.png')
-plt.clf()
-
-#v_pz_measured = v_allData[:,35]
-#v_pz_corrected = v_allData[:,8]
-#v_pz_target = v_target[:,1]
-#v_pz_predicted = prediction_pz
-
-#ratio_pz_corrected = v_pz_corrected/v_pz_target
-#ratio_pz_predicted = v_pz_predicted/v_pz_target
-#label_corrected = 'Jona recipy (mean={:5.3f}, std={:5.3f})'.format(np.mean(ratio_pz_corrected), np.std(ratio_pz_corrected))
-#label_predicted = 'Predicted by NN (mean={:5.3f}, std={:5.3f})'.format(np.mean(ratio_pz_predicted), np.std(ratio_pz_predicted))
-
-#plt.hist(ratio_pz_predicted, bins=bins, color='tab:orange', label=label_predicted, histtype = 'step', density=True)
-#plt.hist(ratio_pz_corrected, bins=bins, color='tab:cyan', label=label_corrected, histtype = 'step', density=True)
-#plt.legend(loc='upper left', fontsize='x-small')
-#plt.xlabel("")
-#plt.savefig(plotsDir+'hPzComparison.png')
-#plt.clf()
-
-
-
-
-plt.scatter(v_target*v_allData['Bc_pt'], ratio_predicted, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
-plt.scatter(v_target*v_allData['Bc_pt'], ratio_corrected, c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-plt.legend(loc='upper left', fontsize='x-small')
-plt.grid(True)
-plt.ylabel("Ratio pT(Bc) (modified/Truth MC) ")
-plt.xlabel("pT(Bc) (Truth MC) [GeV]")
-plt.savefig(plotsDir+'sRatioVsPt.png')
-plt.clf()
-
-#plt.scatter(v_target[:,1], ratio_pz_predicted, c='tab:orange', alpha = 0.2, label = 'NN prediction') 
-#plt.scatter(v_target[:,1], ratio_pz_corrected, c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-#plt.legend(loc='upper left', fontsize='x-small')
-#plt.grid(True)
-##plt.xlim(-10,10)
-#plt.ylim(0.,2.)
-#plt.ylabel("Ratio pT(Bc) (modified/Truth MC) ")
-#plt.xlabel("pT(Bc) (Truth MC) [GeV]")
-#plt.savefig(plotsDir+'sRatioVsPz.png')
-#plt.clf()
-
-#plt.scatter(v_target[ratio_pz_predicted<0.,1], ratio_pz_predicted[ratio_pz_predicted < 0.], c='tab:orange', alpha = 0.2, label = 'NN prediction') 
-#plt.scatter(v_target[ratio_pz_corrected<0.,1], ratio_pz_corrected[ratio_pz_corrected < 0.], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-#plt.scatter(v_target[ratio_pz_predicted>2.,1], ratio_pz_predicted[ratio_pz_predicted >2.], c='tab:orange', alpha = 0.2) 
-#plt.scatter(v_target[ratio_pz_corrected>2.,1], ratio_pz_corrected[ratio_pz_corrected >2.], c='tab:cyan', alpha = 0.2) 
-#print(ratio_pz_predicted[ratio_pz_predicted<0.])
-#plt.legend(loc='upper left', fontsize='x-small')
-#plt.xlim(-10,10)
-#plt.ylim(-200,200)
-#plt.grid(True)
-#plt.ylabel("Ratio pz(Bc) (modified/Truth MC) ")
-#plt.xlabel("pz(Bc) (Truth MC) [GeV]")
-#plt.savefig(plotsDir+'sRatioVsPz_extremeVals.png')
-#plt.clf()
-
-plt.scatter(v_target[ratio_predicted<0.], ratio_predicted[ratio_predicted < 0.], c='tab:orange', alpha = 0.2, label = 'NN prediction') 
-plt.scatter(v_target[ratio_corrected<0.], ratio_corrected[ratio_corrected < 0.], c='tab:cyan', alpha = 0.2, label = 'Jona recipy') 
-plt.scatter(v_target[ratio_predicted>2.], ratio_predicted[ratio_predicted >2.], c='tab:orange', alpha = 0.2) 
-plt.scatter(v_target[ratio_corrected>2.], ratio_corrected[ratio_corrected >2.], c='tab:cyan', alpha = 0.2) 
-plt.legend(loc='upper left', fontsize='x-small')
-plt.xlim(-10,10)
-plt.ylim(-200,200)
-plt.grid(True)
-plt.ylabel("Ratio pt(Bc) (modified/Truth MC) ")
-plt.xlabel("pt(Bc) (Truth MC) [GeV]")
-plt.savefig(plotsDir+'sRatioVsPt_extremeVals.png')
-plt.clf()
-
-exit()
-
-r_allData = np.append(prediction_pt.reshape(prediction_pt.size,1), v_allData, axis=1)
-r_allData = np.append(ratio_predicted.reshape(ratio_predicted.size,1), r_allData, axis=1)
-r_allData = np.append(ratio_corrected.reshape(ratio_corrected.size,1), r_allData, axis=1)
-allDataToTree = np.array([tuple(r_allData[i,:]) for i in range(r_allData[:,0].size)], dtype=featuresListResults)
-dataTree = array2root(allDataToTree, 'test.root', mode='recreate')
-
-hCorrected = TH2F('hCorrected', '', 30, 0., 60., 20, 0., 2.)
-hPredicted = TH2F('hPredicted', '', 30, 0., 60., 20, 0., 2.)
-#print(r_allData[:,[3,0]])
-fill_hist(hCorrected, r_allData[:,[3,0]])
-fill_hist(hPredicted, r_allData[:,[3,1]])
-
-profileCorrected = hCorrected.ProfileX('Jona Correction')
-profilePredicted = hPredicted.ProfileX('NN prediction')
-
-c1 = TCanvas('c1', 'c1', 700, 500)
-profileCorrected.SetLineColor(ROOT.kBlue)
-profilePredicted.SetLineColor(ROOT.kOrange)
-profileCorrected.GetXaxis().SetTitle('pT [GeV]')
-profileCorrected.GetYaxis().SetRangeUser(0., 2.)
-profileCorrected.GetYaxis().SetTitle('Ratio pT corrected/pt Truth MC' )
-
-profileCorrected.Draw()
-ROOT.gStyle.SetStatX(0.3)
-ROOT.gStyle.SetOptStat(0)
-profilePredicted.Draw("SAME")
-c1.SaveAs('test.png')
+if __name__=="__main__":
+    main()

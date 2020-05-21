@@ -3,17 +3,19 @@ import numpy as np
 import matplotlib
 #matplotlib.rcParams['text.usetex'] = True
 from matplotlib import pyplot 
+from utils.featuresList import allFeaturesList
+from sklearn.preprocessing import StandardScaler
 
 pyplot.figure(num=None, figsize=(8,8), dpi = 300, facecolor='w', edgecolor='k')
 
 print("Reading the input file...")
 
-f = np.load("featuresProcessedData.npz")
+f = np.load("data/featuresData.npz")
 inputData = f["arr_0"]
-nn_inputFeatures = (inputData[4:14,:]).astype(float)
-allEnergies = inputData[14:19,:]
-triggerFlags = (inputData[19:22,:]).astype(int)
-channelFlags = (inputData[22:24,:]).astype(int) == 1
+nn_inputFeatures = (inputData[61:71,:]).astype(float)
+allEnergies = inputData[71:76,:]
+triggerFlags = (inputData[155:157,:]).astype(int)
+channelFlags = (inputData[175:177,:]).astype(int) == 1
 
 def plotPtVsEta(ptData, etaData, categories):
     pyplot.scatter(etaData[categories[0,]], ptData[categories[0,]], c='tab:blue', alpha=0.3, edgecolors= 'none', label='OnlyDimuon0' )
@@ -79,7 +81,7 @@ def plotHistoByCategories(data, categories, labels, colors, name = "name___", lo
     pyplot.legend()
     pyplot.xlabel(name)
     pyplot.ylabel("entries")
-    pyplot.savefig("plots/"+prefix+"_"+name+".png")
+    pyplot.savefig("plots/"+prefix+"/"+prefix+"_"+name+".png")
     
 
 
@@ -108,11 +110,32 @@ varNames = ["energyBcRestFrame",
         "phiUnpairedMu",
         "ptUnpairedMu",
         "etaUnpairedMu"]
+allFeaturesList = np.array(allFeaturesList)
+inputFeaturesNumbers = [ 
+  71, 72, 73, 74, 75, 
+  76, 77, 78, 79, 80, 81, 82, 83, 84, 
+  86, 87, 88, 89, 90, 91, 92, 93, 94, 
+  101, 102, 103, 104, 105,
+  111, 112, 113, 114,
+  121, 122, 123, 124, 125,
+  131, 132, 133, 134,
+  138, 139, 140, 141]
+
+inputFeatures = inputData[inputFeaturesNumbers,:]
+inputFeaturesLabels = allFeaturesList[inputFeaturesNumbers]
+
+sc = StandardScaler().fit(inputFeatures)
+scaled_inputFeatures = sc.transform(inputFeatures)
+
 plotPtVsEta(nn_inputFeatures[8,:], nn_inputFeatures[9,:], categories)
 plotAllEnergies(allEnergies)
-for j in range(len(varNames)):
-    plotHistoByCategories ( nn_inputFeatures[j,:], categories, labels, colors, name = varNames[j] , prefix = "trigCategories")
-    plotHistoByCategories ( nn_inputFeatures[j,:], channelFlags, channelLabels, channelColors, name = varNames[j] , prefix = "channel")
+#for j in range(len(varNames)):
+#    plotHistoByCategories ( nn_inputFeatures[j,:], categories, labels, colors, name = varNames[j] , prefix = "trigCategories")
+#    plotHistoByCategories ( nn_inputFeatures[j,:], channelFlags, channelLabels, channelColors, name = varNames[j] , prefix = "channels")
+for k in range(len(inputFeaturesLabels)):
+#    plotHistoByCategories ( inputFeatures[k,:], categories, labels, colors, name = inputFeaturesLabels[k] , prefix = "trigCategories")
+#    plotHistoByCategories ( inputFeatures[k,:], channelFlags, channelLabels, channelColors, name = inputFeaturesLabels[k] , prefix = "channels")
+    plotHistoByCategories ( scaled_inputFeatures[k,:], channelFlags, channelLabels, channelColors, name = inputFeaturesLabels[k] , prefix = "scaled_channels")
 
 
 print('Done!')
