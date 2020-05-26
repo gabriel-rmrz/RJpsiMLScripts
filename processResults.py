@@ -9,7 +9,7 @@ resultsDir = 'results/dnnFeedForward/' + trainingSample + '_channel/'
 plotsDir = 'plots/dnnFeedForward/' + trainingSample + '_channel/'
 nNodesAllowed = [20, 40, 60, 80, 100]
 minNumberOfLayers = 1
-maxNumberOfLayers = 3
+maxNumberOfLayers = 5
 
 def plotHistory(history_df, historyFile):
     plt.figure(num=None, figsize=(5, 6), dpi = 300, facecolor='w', edgecolor='k')
@@ -29,7 +29,7 @@ def plotHistory(history_df, historyFile):
 def plotRatio(input_df, inputFile):
     plt.figure(num=None, figsize=(5, 6), dpi = 300, facecolor='w', edgecolor='k')
     plt.legend(fontsize='x-small')
-    input_df['bc_ptRatio_predictedGen'].hist( bins= 30, label=inputFile)
+    input_df['bc_ptRatio_predictedGen'].hist( bins= 30, label=inputFile, histtype = 'step')
     plt.legend(fontsize='x-small')
     plt.xlabel("pt_predicted_nn/pt_gen")
     plt.tight_layout()

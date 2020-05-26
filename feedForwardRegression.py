@@ -139,12 +139,15 @@ def get_data_frames(trainingSample, predictionSample,  allFeaturesList, inputFea
 
 def build_regression_model(nodes, dropoutRate, data_len):
   model = Sequential()
-  model.add(Dense(45, activation="relu", kernel_initializer="glorot_uniform", input_dim=data_len))
+  #model.add(Dense(nodes[0], activation="relu", kernel_initializer="glorot_uniform", input_dim=data_len))
+  model.add(Dense(nodes[0], activation="relu", kernel_initializer="lecun_uniform", input_dim=data_len))
   model.add(Dropout(dropoutRate))
-  for iNode in nodes:
-    model.add(Dense(iNode, activation="relu", kernel_initializer="glorot_uniform"))
+  for iNode in nodes[1:]:
+    #model.add(Dense(iNode, activation="relu", kernel_initializer="glorot_uniform"))
+    model.add(Dense(iNode, activation="relu", kernel_initializer="lecun_uniform"))
     model.add(Dropout(dropoutRate))
-  model.add(Dense(1, kernel_initializer="glorot_uniform"))
+  #model.add(Dense(1, kernel_initializer="glorot_uniform"))
+  model.add(Dense(1, kernel_initializer="lecun_uniform"))
   print('compiling')
   model.compile(loss='mse', optimizer='adam',metrics=['mse', 'mae'])
   model.summary() 
@@ -216,7 +219,6 @@ def main():
   #import scipy
   #print(scipy.stats.skew(prediction_ratio_pt[:,0]))
   
-  prediction_pt_ratio_df.to_root('testPrediction.root', key='tree')
   corrected_pt_ratio_df = pd.DataFrame(v_allData[:,56]/v_allData[:,0], columns=['bc_ptRatio_correctedGen'])
   
   outputFile = resultsDir + "results-nodes"

@@ -6,7 +6,7 @@ import time
 def main():
     nNodesAllowed = [20, 40, 60, 80, 100]
     
-    trainingSample = "tau"
+    trainingSample = "muon"
     plotsDir = "plots/dnnFeedForward/" + trainingSample + "_channel"
     resultsDir = "results/dnnFeedForward/" + trainingSample + "_channel"
     #if( !path.exit(plotsDir)):
@@ -20,10 +20,8 @@ def main():
     except:
         print('The results directory already exist')
 
-    exit()
-
     minNumberOfLayers = 1
-    maxNumberOfLayers = 5
+    maxNumberOfLayers = 2
     
     for L in range(minNumberOfLayers, maxNumberOfLayers):
         #for nodes in itertools.combinations_with_replacement(nNodesAllowed, L):

@@ -129,12 +129,12 @@ scaled_inputFeatures = sc.transform(inputFeatures)
 
 plotPtVsEta(nn_inputFeatures[8,:], nn_inputFeatures[9,:], categories)
 plotAllEnergies(allEnergies)
-#for j in range(len(varNames)):
-#    plotHistoByCategories ( nn_inputFeatures[j,:], categories, labels, colors, name = varNames[j] , prefix = "trigCategories")
-#    plotHistoByCategories ( nn_inputFeatures[j,:], channelFlags, channelLabels, channelColors, name = varNames[j] , prefix = "channels")
+for j in range(len(varNames)):
+    plotHistoByCategories ( nn_inputFeatures[j,:], categories, labels, colors, name = varNames[j] , prefix = "trigCategories")
+    plotHistoByCategories ( nn_inputFeatures[j,:], channelFlags, channelLabels, channelColors, name = varNames[j] , prefix = "channels")
 for k in range(len(inputFeaturesLabels)):
-#    plotHistoByCategories ( inputFeatures[k,:], categories, labels, colors, name = inputFeaturesLabels[k] , prefix = "trigCategories")
-#    plotHistoByCategories ( inputFeatures[k,:], channelFlags, channelLabels, channelColors, name = inputFeaturesLabels[k] , prefix = "channels")
+    plotHistoByCategories ( inputFeatures[k,:], categories, labels, colors, name = inputFeaturesLabels[k] , prefix = "trigCategories")
+    plotHistoByCategories ( inputFeatures[k,:], channelFlags, channelLabels, channelColors, name = inputFeaturesLabels[k] , prefix = "channels")
     plotHistoByCategories ( scaled_inputFeatures[k,:], channelFlags, channelLabels, channelColors, name = inputFeaturesLabels[k] , prefix = "scaled_channels")
 
 
