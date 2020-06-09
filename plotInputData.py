@@ -83,6 +83,46 @@ def plotHistoByCategories(data, categories, labels, colors, name = "name___", lo
     pyplot.ylabel("entries")
     pyplot.savefig("plots/"+prefix+"/"+prefix+"_"+name+".png")
     
+def plotPieChart(categoriesSignal, categoriesNormalization):
+    print("Signal, Dimuon0: ", categoriesSignal[0].mean())
+    print("Signal, JpsiTrack: ", categoriesSignal[1].mean())
+    print("Signal, Intersection: ", categoriesSignal[2].mean())
+
+    print("Normalization, Dimuon0: ", categoriesNormalization[0].mean())
+    print("Normalization, JpsiTrack: ", categoriesNormalization[1].mean())
+    print("Normalization, Intersection: ", categoriesNormalization[2].mean())
+
+    normDimuon0 = categoriesNormalization[0].mean()
+    normJPsiTrack = categoriesNormalization[1].mean()
+    normInter = categoriesNormalization[2].mean()
+
+    sigDimuon0 = categoriesSignal[0].mean()
+    sigJPsiTrack = categoriesSignal[1].mean()
+    sigInter = categoriesSignal[2].mean()
+
+    totalNorm = normDimuon0 + normJPsiTrack + normInter
+    totalSig = sigDimuon0 + sigJPsiTrack + sigInter
+
+    sizesNorm = [normDimuon0, normJPsiTrack, normInter] / totalNorm
+    sizesSig = [sigDimuon0, sigJPsiTrack, sigInter] / totalSig
+
+    labels = ["Only Dimuon0", "Only JPsiTrack", "Intersection"]
+
+    fig1, ax1 = pyplot.subplots()
+    ax1.pie(sizesNorm, labels=labels, autopct="%2.2f", shadow=True, startangle=70)
+    ax1.axis('equal')
+    pyplot.title('Normalization')
+    pyplot.savefig("plots/normalizationPie.png")
+
+
+    fig2, ax2 = pyplot.subplots()
+    ax2.pie(sizesSig, labels=labels, autopct="%2.2f", shadow=True, startangle=70)
+    ax1.axis('equal')
+    pyplot.title('Signal')
+    pyplot.savefig("plots/signalPie.png")
+
+    return
+
 
 
 
@@ -93,6 +133,10 @@ onlyJpsiTrack = (triggerFlags[1,:] - intersection) == 1
 categories = np.array([onlyDimuon0,onlyJpsiTrack, intersection ])
 categoriesSignal = np.array([np.logical_and(onlyDimuon0,channelFlags[0,:]), np.logical_and(onlyJpsiTrack,channelFlags[0,:]), np.logical_and(intersection,channelFlags[0,:]) ])
 categoriesNormalization = np.array([np.logical_and(onlyDimuon0,channelFlags[1,:]), np.logical_and(onlyJpsiTrack,channelFlags[1,:]), np.logical_and(intersection,channelFlags[1,:]) ])
+
+plotPieChart(categoriesSignal=categoriesSignal, categoriesNormalization=categoriesNormalization)
+exit()
+
 
 colors=["red", "black", "green"]
 labels = ["Only Dimuon0", "Only Jpsi+Trk",  "Intersection"]

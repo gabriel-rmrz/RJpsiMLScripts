@@ -117,8 +117,8 @@ def bcSelector(event, isBkg = False):
     if((event.isMu1Soft[iBc] < 1) or (event.isMu2Soft[iBc] < 1) ): continue
     if(event.Bc_jpsi_pt[iBc] < 8.0): continue
     if(event.Bc_mass[iBc] < 2.0 or event.Bc_mass[iBc] >6.4): continue
-    if(event.Bc_vertexProbability[iBc] < 0.01): continue
-    if(event.jpsiVertexProbability[iBc] < 0.01): continue
+    if(event.Bc_vertexProbability[iBc] < 0.1): continue
+    if(event.jpsiVertexProbability[iBc] < 0.1): continue
     if((event.truthMatchMu2[iBc] < 1 or event.truthMatchMu1[iBc] < 1) and not isBkg): continue
     if(event.truthMatchMu[iBc] < 1.0 and not isBkg): continue
     iBcSelected.append(iBc)
@@ -251,7 +251,7 @@ def main():
   
   
   np.savez_compressed(outDir + 'featuresData.npz', features)
-  np.savez_compressed(outDir + 'featuresProcessedData.npz', featuresProcessed)
+  #np.savez_compressed(outDir + 'featuresProcessedData.npz', featuresProcessed)
   
   print("Done.")
 
