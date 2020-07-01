@@ -312,7 +312,11 @@ allFeaturesList = [
 'truthMatchMuSim',
 'truthMatchMu1',
 'truthMatchMu2',
-'truthMatchMu']
+'truthMatchMu',
+'deltaVtxX',
+'deltaVtxY',
+'deltaVtxZ',
+]
 featuresListInputsOld = [
 ('gen_b_pt', np.float32),
 ('gen_b_px', np.float32),

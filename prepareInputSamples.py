@@ -37,7 +37,6 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
   unpairedMuonBoostedToJpsiRestFrame_p4.SetPtEtaPhiM(unpairedMuon_p4.Pt(), unpairedMuon_p4.Eta(), unpairedMuon_p4.Phi(), unpairedMuon_p4.M())
   unpairedMuonBoostedToJpsiRestFrame_p4.Boost(boostToJpsiRestFrame)
 
-
   nn_energyBcRestFrame = unpairedMuonBoostedToBcCorrectedRestFrame_p4.E()
   #nn_missMass2 = (bcCorrected_p4 - muon1_p4 - muon2_p4 - unpairedMuon_p4).M2()
   nn_missMass2 = (bcCorrected_p4 - jpsi_p4 - unpairedMuon_p4).M2()
@@ -53,36 +52,6 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
   nn_unpairedMuPt = unpairedMuon_p4.Pt()
   nn_unpairedMuEta = unpairedMuon_p4.Eta()
 
-  #print(nn_energyBcRestFrame)
-  #print(nn_missMass2)
-  #print(nn_q2)
-  #print("bc_p4.Pt(): ",bc_p4.Pt())
-  #print("bc_p4.Px(): ",bc_p4.Px())
-  #print("bc_p4.Py(): ",bc_p4.Py())
-  #print("bc_p4.Pz(): ",bc_p4.Pz())
-  #print("bc_p4.E(): ",bc_p4.E())
-  #print()
-  #print()
-  #print("bcCorrected_p4.Pt(): ",bcCorrected_p4.Pt())
-  #print("bcCorrected_p4.Px(): ",bcCorrected_p4.Px())
-  #print("bcCorrected_p4.Py(): ",bcCorrected_p4.Py())
-  #print("bcCorrected_p4.Pz(): ",bcCorrected_p4.Pz())
-  #print("bcCorrected_p4.E(): ",bcCorrected_p4.E())
-  #print()
-  #print("jpsi_p4.Pt: ",jpsi_p4.Pt())
-  #print("jpsi_p4.Px: ",jpsi_p4.Px())
-  #print("jpsi_p4.Py: ",jpsi_p4.Py())
-  #print("jpsi_p4.Pz: ",jpsi_p4.Pz())
-  #print("jpsi_p4.Pz: ",jpsi_p4.Pz())
-  #print("jpsi_p4.E: ",jpsi_p4.E())
-  #print()
-  #print("unpairedMuon_p4.Pt: ", unpairedMuon_p4.Pt())
-  #print("unpairedMuon_p4.Px: ", unpairedMuon_p4.Px())
-  #print("unpairedMuon_p4.Py: ", unpairedMuon_p4.Py())
-  #print("unpairedMuon_p4.Pz: ", unpairedMuon_p4.Pz())
-  #print("unpairedMuon_p4.E: ", unpairedMuon_p4.E())
-  #exit()
-  
   featuresEntry = np.array([
     [bcCorrected_p4.Pt()], 
     [bcCorrected_p4.Px()], 
@@ -107,6 +76,7 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
 
 def bcSelector(event, isBkg = False):
   iBcSelected = []
+  iBcJpsiPts = []
   for iBc in range(event.nBc):
     if((event.signalDecayPresent[iBc]<1) and (event.normalizationDecayPresent[iBc] < 1) and (event.background1DecayPresent[iBc] < 1) ) : continue
     if(event.triggerMatchDimuon0[iBc] < 1 and event.triggerMatchJpsiTk[iBc] < 1 and event.triggerMatchJpsiTkTk[iBc] < 1) : continue
@@ -117,11 +87,21 @@ def bcSelector(event, isBkg = False):
     if((event.isMu1Soft[iBc] < 1) or (event.isMu2Soft[iBc] < 1) ): continue
     if(event.Bc_jpsi_pt[iBc] < 8.0): continue
     if(event.Bc_mass[iBc] < 2.0 or event.Bc_mass[iBc] >6.4): continue
-    if(event.Bc_vertexProbability[iBc] < 0.1): continue
-    if(event.jpsiVertexProbability[iBc] < 0.1): continue
+    if(event.Bc_vertexProbability[iBc] < 0.01): continue
+    if(event.jpsiVertexProbability[iBc] < 0.01): continue
     if((event.truthMatchMu2[iBc] < 1 or event.truthMatchMu1[iBc] < 1) and not isBkg): continue
     if(event.truthMatchMu[iBc] < 1.0 and not isBkg): continue
-    iBcSelected.append(iBc)
+    iBcJpsiPts.append(event.Bc_jpsi_pt[iBc])
+    #if( iBc > 0):
+      #print("nEvetns: ", event.nBc)
+      #print("jpsi_pt: ", event.Bc_jpsi_pt[iBc])
+      #print("mu_pt: ", event.Bc_mu_pt[iBc])
+  if(len(iBcJpsiPts) > 0):
+    #print()
+    #print("jpsi_pt max index: ", iBcJpsiPts.index(max(iBcJpsiPts)))
+    iBcSelected.append(iBcJpsiPts.index(max(iBcJpsiPts)))
+      
+
   return iBcSelected
 
 
@@ -160,8 +140,11 @@ def fillProcessedFeaturesArray(featuresProcessed, channel):
           event.Bc_jpsi_pz[iBc],
           event.Bc_jpsi_mass[iBc])
 
-      #featuresEntry = computeProcessedFeatures(event.gen_jpsi_mu1_p4, event.gen_jpsi_mu2_p4, event.gen_mu_p4, event.gen_jpsi_p4, event.gen_b_p4)
-      featuresEntry = computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4)
+      #print("---")
+      #print("event.gen_mu_p4.Px(): ", event.gen_mu_p4.Px())
+      #print("event.Bc_mu_px[iBc]: ", event.Bc_mu_px[iBc])
+      featuresEntry = computeProcessedFeatures(event.gen_jpsi_mu1_p4, event.gen_jpsi_mu2_p4, event.gen_mu_p4, event.gen_jpsi_p4, event.gen_b_p4)
+      #featuresEntry = computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4)
       featuresEntry = np.append(featuresEntry, np.array([[bc_p4.E()]]), axis=0)
       featuresEntry = np.append(featuresEntry, np.array([[jpsi_p4.E()]]), axis=0)
       featuresEntry = np.append(featuresEntry, np.array([[muon1_p4.E()]]), axis=0)

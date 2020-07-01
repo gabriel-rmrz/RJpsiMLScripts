@@ -4,7 +4,7 @@ import subprocess
 import time
 
 def main():
-    nodes = [100, 100, 100, 60]
+    nodes = [140, 60]
     valFractions = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
     dropoutRates = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
     batchSizes = [25, 50, 75, 100, 125, 150, 175, 200]

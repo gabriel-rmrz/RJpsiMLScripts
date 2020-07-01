@@ -4,7 +4,7 @@ import subprocess
 import time
 
 def main():
-    nNodesAllowed = [20, 40, 60, 80, 100]
+    nNodesAllowed = [60, 80, 100, 140, 180]
     
     trainingSample = "muon"
     plotsDir = "plots/dnnFeedForward/" + trainingSample + "_channel"

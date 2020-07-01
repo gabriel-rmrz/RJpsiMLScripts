@@ -1,13 +1,13 @@
 import os
 import argparse
 
-
+import math
 import numpy as np
 import pandas as pd
 import root_pandas
+import ROOT
 from root_numpy import array2tree, array2root, fill_hist
 from ROOT import TF1, TH2, TH2F, gROOT, TCanvas
-import ROOT
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -16,6 +16,8 @@ from pylab import savefig
 from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from scipy import stats
+from scipy.special import inv_boxcox
 from random import randint
 import copy
 seed = 7
@@ -120,13 +122,82 @@ def get_profile_pdf(bc_pt):
   c1.SaveAs('profile.png')
   return p1
 
-def get_target_distribution():
-  pass
+def get_target_distributions_scaler(bc_pt_gen):
+  bc_pt_gen = np.reshape(bc_pt_gen,[bc_pt_gen.size, 1])
+  sc_target = StandardScaler().fit(bc_pt_gen)
+  targetData=sc_target.transform(bc_pt_gen)
+  return targetData
 
-def get_ptDistribution_fromPrediction():
-  pass
+def get_pt_from_NNPrediction_scaler(prediction_nn, bc_pt_gen):
+  bc_pt_gen = np.reshape(bc_pt_gen,[bc_pt_gen.size, 1])
+  sc_target = StandardScaler().fit(bc_pt_gen)
+  prediction_pt = sc_target.inverse_transform(prediction_nn[:,0])
+  return prediction_pt
 
-def get_data_frames(trainingSample, predictionSample,  allFeaturesList, inputFeatures):
+def get_target_distributions_ptRatio(bc_pt_gen, bc_pt_reco):
+  targetData = np.reshape((bc_pt_gen + 5.)/bc_pt_reco,[bc_pt_gen.size, 1])
+  return targetData
+
+def get_pt_from_NNPrediction_ptRatio(prediction_nn, bc_pt_reco):
+  prediction_pt = (prediction_nn[:,0] * bc_pt_reco) - 5
+  return prediction_pt
+
+def get_target_distributions_pxpypz_scaler(bc_p3_gen):
+  #bc_p3_gen = np.reshape(bc_p3_gen,[bc_p3_gen[:,0].size, 1])
+  sc_target = StandardScaler().fit(bc_p3_gen)
+  targetData=sc_target.transform(bc_p3_gen)
+  return targetData
+
+def get_pxpypz_from_NNPrediction_pxpypz_scaler(prediction_nn, bc_p3_gen):
+  bc_p3_gen = np.reshape(bc_p3_gen,[bc_p3_gen[:,0].size, 3])
+  sc_target = StandardScaler().fit(bc_p3_gen)
+  prediction_p3 = sc_target.inverse_transform(prediction_nn)
+  return prediction_p3
+
+def get_target_distributions_pt_scaler_etaphi(bc_p3_ptetaphi_gen):
+  pt = np.reshape(bc_p3_ptetaphi_gen[:,0], [bc_p3_ptetaphi_gen[:,0].size,1])
+  sc_target = StandardScaler().fit(pt)
+  pt_scaled = sc_target.transform(pt)
+  pt_scaled = np.reshape(pt_scaled,[pt_scaled.size, 1])
+  targetData = np.append(pt_scaled, bc_p3_ptetaphi_gen[:,[1,2]], axis=1)
+  return targetData
+
+def get_pxpypz_from_NNPrediction_pt_scaler_etaphi(prediction_nn, bc_p3_ptetaphi_gen):
+  print('Getting px, py and pz')
+  bc_pt_gen = np.reshape(bc_p3_ptetaphi_gen[:,0],[bc_p3_ptetaphi_gen[:,0].size, 1])
+  sc_target = StandardScaler().fit(bc_pt_gen)
+  pt_prediction = sc_target.inverse_transform(prediction_nn[:,0])
+  #pt_prediction = np.reshape(pt_prediction, [pt_prediction.size, 1])
+
+  px = pt_prediction * np.cos(prediction_nn[:,2])
+  py = pt_prediction * np.sin(prediction_nn[:,2])
+  pz = pt_prediction * np.sinh(prediction_nn[:,1])
+
+  print(prediction_nn[:,1])
+
+  px = np.reshape(px, [px.size,1])
+  py = np.reshape(py, [py.size,1])
+  pz = np.reshape(pz, [pz.size,1])
+  
+  prediction_p2 = np.append(px, py, axis=1)
+  prediction_p3 = np.append(prediction_p2, pz, axis=1)
+  #print(prediction_p3.shape)
+  #exit()
+  
+  print('Done getting px, py and pz')
+  return prediction_p3
+  
+def get_target_distributions_boxcox(t_target, v_target, test_target,targetData):
+  #xp, expp = stats.boxcox(allData[:,0])
+  #targetData_pre = xp/allData[:,102]
+  #targetData = np.reshape(targetData_pre,[targetData_pre.size, 1])
+  pass
+def get_pt_from_NNPrediction_boxcox(prediction_nn, targetData):
+  #prediction_ptRatio = inv_boxcox(prediction_nn[:,0], expp)
+  #prediction_pt  = prediction_ptRatio*test_allData[:,102]
+  pass
+  
+def get_arrays(trainingSample, predictionSample,  allFeaturesList, inputFeatures):
   inputFile="data/featuresData.npz"
   f = np.load(inputFile)
   inputData = f["arr_0"]
@@ -145,11 +216,11 @@ def get_data_frames(trainingSample, predictionSample,  allFeaturesList, inputFea
   inputData_mix = np.append(inputData_norm, inputData_sig, axis=0)
   
   
-  inputData = inputData_tau
+  allData = inputData_tau
   if(trainingSample == 'muon'):
-    inputData = inputData_muon
+    allData = inputData_muon
   elif(trainingSample == 'mix'):
-    inputData = inputData_mix
+    allData = inputData_mix
   
   predictionData = inputData_tau
   if(predictionSample == 'muon'):
@@ -157,23 +228,52 @@ def get_data_frames(trainingSample, predictionSample,  allFeaturesList, inputFea
   elif(predictionSample == 'mix'):
     predictionData = inputData_mix
   
-  allFeatures = inputData
-  profilePdf =  get_profile_pdf(inputData[:, [102,0]])
+  profilePdf =  get_profile_pdf(allData[:, [102,0]])
   
-  #targetDenominator = np.array(list(map(profilePdf,inputData[:,102])))
-  #targetNominator = np.array(inputData[:,0])
-  #targetFeatures = targetNominator.reshape(-1,1)/ targetDenominator.reshape(-1,1)
+  #targetData = np.reshape(allData[:,0],[allData[:,0].size, 1])
+  #targetData = get_target_distributions_ptRatio(allData[:,0],allData[:,102])
+  #targetData = get_target_distributions_scaler(allData[:,0])
+  #targetData = get_target_distributions_pxpypz_scaler(allData[:,[1,2,3]])
+  #targetData = get_target_distributions_pt_scaler_etaphi(allData[:,[0, 5, 6]]) #taking bc_pt, bc_eta and bc_phi as inputs
+  targetData = allData[:,63]
 
-  #targetFeatures = np.reshape((inputData[:,0] +5)/inputData[:,102],[inputData[:,0].size, 1])
-  #targetFeatures = np.reshape((inputData[:,0])/inputData[:,102],[inputData[:,0].size, 1])
-  targetFeatures = np.reshape(inputData[:,0],[inputData[:,0].size, 1])
-  #mu, sigma = 0., 1.
-  #targetFeatures = np.reshape(np.random.normal(mu, sigma, inputData[:,0].size), inputData[:,0].size, 1)
+  diff_vertices = allData[:, [76, 77, 78]] - allData[:, [86, 87, 88]]
+  #distance_Sec_Prim_vertices =  (diff_vertices[:,0]**2 + diff_vertices[:,1]**2 + diff_vertices[:,2]**2)** 0.5
+  #distance_Sec_Prim_vertices = np.reshape(distance_Sec_Prim_vertices, [distance_Sec_Prim_vertices.size, 1])
+  #allData = np.append(allData, distance_Sec_Prim_vertices, axis=1)
+  allData = np.append(allData, diff_vertices, axis=1)
 
-  inputFeatures = inputData[:,inputFeatures]
+  inputData_nn = allData[:,inputFeatures]
 
-  #return allFeatures[targetFeatures[:,0] > 1.2,:], inputFeatures[targetFeatures[:,0] > 1.2,:], targetFeatures[targetFeatures[:,0] > 1.2]
-  return allFeatures, inputFeatures, targetFeatures
+  print(allData.shape)
+  print(targetData.shape)
+
+  train_allData, test_allData, train_target, test_target = train_test_split(allData, targetData, 
+                                      #test_size=validation_frac,
+                                      test_size=0.3, 
+                                      #train_size=5000,
+                                      #test_size= 2000,
+                                      random_state=9, 
+                                      shuffle=True,
+                                      stratify=allData[:,176])
+  
+  t_allData, v_allData, t_target, v_target = train_test_split(train_allData, train_target, 
+                                      test_size=0.3, 
+                                      #train_size=3000,
+                                      #test_size=2000, #validation_frac, 
+                                      random_state=8, 
+                                      shuffle=True,
+                                      stratify=train_allData[:,176])
+  t_input=t_allData[:, inputFeatures]
+  v_input=v_allData[:, inputFeatures]
+  test_input = test_allData[:, inputFeatures]
+
+  sc = StandardScaler().fit(inputData_nn)
+  scaled_t_input=sc.transform(t_input)
+  scaled_v_input=sc.transform(v_input)
+  scaled_test_input=sc.transform(test_input)
+
+  return allData, scaled_t_input, t_target, scaled_v_input, v_target, scaled_test_input, test_target, test_allData
   
 ########################################################################
 ########################################################################
@@ -183,15 +283,14 @@ def get_data_frames(trainingSample, predictionSample,  allFeaturesList, inputFea
 
 def build_regression_model(nodes, dropoutRate, data_len):
   model = Sequential()
-  #model.add(Dense(nodes[0], activation="relu", kernel_initializer="glorot_uniform", input_dim=data_len))
-  model.add(Dense(nodes[0], activation="relu", kernel_initializer="lecun_normal", input_dim=data_len))
+  #kernel_ini = "glorot_uniform"
+  kernel_ini = "lecun_normal"
+  model.add(Dense(nodes[0], activation="relu", kernel_initializer=kernel_ini, input_dim=data_len))
   model.add(Dropout(dropoutRate))
   for iNode in nodes[1:]:
-    #model.add(Dense(iNode, activation="relu", kernel_initializer="glorot_uniform"))
-    model.add(Dense(iNode, activation="relu", kernel_initializer="lecun_normal"))
+    model.add(Dense(iNode, activation="relu", kernel_initializer=kernel_ini))
     model.add(Dropout(dropoutRate))
-  #model.add(Dense(1, kernel_initializer="glorot_uniform"))
-  model.add(Dense(1, kernel_initializer="lecun_normal"))
+  model.add(Dense(1, kernel_initializer=kernel_ini))
   print('compiling')
   model.compile(loss='mse', optimizer='adam',metrics=['mse', 'mae'])
   model.summary() 
@@ -214,56 +313,26 @@ def main():
 
   allFeaturesList = np.array(allFeaturesList)
   inputFeatures = [ 
-    71, 72, 73, 74, 75, 
-    76, 77, 78, 79, 80, 81, 82, 83, 84,
-    86, 87, 88, 89, 90, 91, 92, 93, 94,
-    101, 102, 103, 104, 105,
-    111, 112, 113, 114,
-    121, 122, 123, 124, 125,
-    131, 132, 133, 134,
-    138, 139, 140, 141]
-  allData, inputData, targetData = get_data_frames(trainingSample=trainingSample, predictionSample=predictionSample, allFeaturesList=allFeaturesList, inputFeatures=inputFeatures)
+    71, 72, 73, 74, 75, #bc, jpsi, mu1, mu2, unpairedmu energies
+    76, 77, 78, 79, 80, 81, 82, 83, 84, #primary vertex + error
+    86, 87, 88, 89, 90, 91, 92, 93, 94, #sv + error
+    101, 102, 103, 104, 105, #bc mass, pt, px, py, pz
+    111, 112, 113, 114, # unpaired mu pt, px, py, pz
+    121, 122, 123, 124, 125, #bc mass, pt, px, py, pz
+    131, 132, 133, 134, #mu1 pt, px, py, pz
+    138, 139, 140, 141, #mu2 pt, px, py, pz
+    -3, -2, -1] #vertex distance
+  allData, t_input, t_target, v_input, v_target, test_input, test_target, test_allData = get_arrays(trainingSample=trainingSample, predictionSample=predictionSample, allFeaturesList=allFeaturesList, inputFeatures=inputFeatures)
 
-  train_allData, test_allData, train_target, test_target = train_test_split(allData, targetData, 
-                                      #test_size=validation_frac) 
-                                      #test_size=test_frac, 
-                                      train_size=5000,
-                                      test_size= 2000,
-                                      random_state=9, 
-                                      shuffle=True,
-                                      stratify=allData[:,176])
-  
-  t_allData, v_allData, t_target, v_target = train_test_split(train_allData, train_target, 
-                                      #test_size=validation_frac, 
-                                      train_size=3000,
-                                      test_size=2000, #validation_frac, 
-                                      random_state=8, 
-                                      shuffle=True,
-                                      stratify=train_allData[:,176])
-  t_input=t_allData[:, inputFeatures]
-  v_input=v_allData[:, inputFeatures]
-  test_input = test_allData[:, inputFeatures]
-
-  sc = StandardScaler().fit(inputData)
-  scaled_t_input=sc.transform(t_input)
-  scaled_v_input=sc.transform(v_input)
-  scaled_test_input=sc.transform(test_input)
-
-  sc_target = StandardScaler().fit(targetData)
-  scaled_t_target=sc_target.transform(t_target)
-  scaled_v_target=sc_target.transform(v_target)
-  scaled_test_target=sc_target.transform(test_target)
 
   #######
-  data_len=scaled_t_input.shape[1]
+  data_len=t_input.shape[1]
   K.clear_session()
   model = build_regression_model(nodes=nodes, dropoutRate=dropoutRate, data_len=data_len)
-  history=model.fit(scaled_t_input , 
-                    scaled_t_target, 
-                    #t_target, 
+  history=model.fit(t_input , 
+                    t_target, 
                     epochs=n_epochs, verbose=1, batch_size=batch_size, 
-                    #validation_data=(scaled_v_input , v_target),
-                    validation_data=(scaled_v_input , scaled_v_target),
+                    validation_data=(v_input , v_target),
                     callbacks = [
                         EarlyStopping(monitor='val_loss', patience = 10, verbose=1),
                         ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=10, verbose=1),
@@ -273,23 +342,18 @@ def main():
   history_df = pd.DataFrame(history.history, index=history.epoch)
 
   profilePdf =  get_profile_pdf(test_allData[:, [102,0]])
-  targetDenominator = np.array(list(map(profilePdf,test_allData[:,102])))
-  targetDenominator = np.reshape(targetDenominator, [targetDenominator.size, 1])
-  #prediction_ratio_pt = model.predict(scaled_test_input)
-  #prediction_pt = prediction_ratio_pt *targetDenominator
-  scaled_prediction_ratio_pt = model.predict(scaled_test_input)
-  prediction_pt = sc_target.inverse_transform(scaled_prediction_ratio_pt)
-  target_ratio_df = pd.DataFrame(test_target, columns=['target'])
-  prediction_ratio_df = pd.DataFrame(prediction_pt, columns=['pt_predicted'])
-  ratio_out_test_df = pd.concat([target_ratio_df, prediction_ratio_df], axis=1)
-  ratio_out_test_df.to_root('tmp/ratios.root', key='tree')
-  
-  prediction_pt_df = pd.DataFrame(prediction_pt[:,0], columns=['bc_pt_predicted'])
-  prediction_pt_ratio_df = pd.DataFrame(prediction_pt[:,0]/test_allData[:,0], columns=['bc_ptRatio_predictedGen'])
-  #import scipy
-  #print(scipy.stats.skew(prediction_ratio_pt[:,0]))
-  
-  corrected_pt_ratio_df = pd.DataFrame(test_allData[:,56]/(test_allData[:,0]), columns=['bc_ptRatio_correctedGen'])
+  prediction_q2 = model.predict(test_input)
+  #prediction_nn = model.predict(test_input)
+  #prediction_pt = get_pt_from_NNPrediction_scaler(prediction_nn, allData[:, 0])
+  #prediction_pt = get_pt_from_NNPrediction_ptRatio(prediction_nn, test_allData[:,102])
+  #prediction_pxpypz=get_pxpypz_from_NNPrediction_pxpypz_scaler(prediction_nn, allData[:,[1,2,3]])
+  #prediction_pxpypz=get_pxpypz_from_NNPrediction_pt_scaler_etaphi(prediction_nn, allData[:,[0,5,6]])
+
+  #prediction_pt_df = pd.DataFrame(prediction_pt, columns=['bc_pt_predicted'])
+  #prediction_pt_ratio_df = pd.DataFrame(prediction_pt/test_allData[:,0], columns=['pt_ptRatio_predicted'])
+  #prediction_pxpypz_df = pd.DataFrame(prediction_pxpypz, columns=['bc_px_predicted', 'bc_py_predicted', 'bc_pz_predicted'])
+  prediction_q2_df = pd.DataFrame(prediction_q2, columns=['nn_q2_predicted'])
+  corrected_pt_ratio_df = pd.DataFrame(test_allData[:,56]/(test_allData[:,0]), columns=['bc_ptRatio_corrected'])
   
   resultsDir = 'results/dnnFeedForward/' + trainingSample + '_channel/'
   outputFile = resultsDir + "results-"+trainingSample + "_channel-nodes"
@@ -306,7 +370,9 @@ def main():
   
 
   test_allDF = pd.DataFrame(test_allData, columns=allFeaturesList, dtype=np.float32)
-  results_df = pd.concat([prediction_pt_df, prediction_pt_ratio_df, corrected_pt_ratio_df, test_allDF], axis=1)
+  #results_df = pd.concat([prediction_pt_df, prediction_pt_ratio_df, corrected_pt_ratio_df, test_allDF], axis=1)
+  #results_df = pd.concat([prediction_pxpypz_df, corrected_pt_ratio_df, test_allDF], axis=1)
+  results_df = pd.concat([prediction_q2_df, corrected_pt_ratio_df, test_allDF], axis=1)
   results_df.to_root(outputFile, key='tree')
   history_df.to_root(historyFile, key='historyTree')
   #predictionLabel = "nLay_%d-nNod_%d--Mean= %5.3f, RMS= %5.3f" % (Len(nodes), nodes, prediction_pt_ratio_df['ratio_bc_pt'].mean(), prediction_pt_ratio_df['ratio_bc_pt'].std()))

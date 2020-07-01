@@ -135,7 +135,7 @@ categoriesSignal = np.array([np.logical_and(onlyDimuon0,channelFlags[0,:]), np.l
 categoriesNormalization = np.array([np.logical_and(onlyDimuon0,channelFlags[1,:]), np.logical_and(onlyJpsiTrack,channelFlags[1,:]), np.logical_and(intersection,channelFlags[1,:]) ])
 
 plotPieChart(categoriesSignal=categoriesSignal, categoriesNormalization=categoriesNormalization)
-exit()
+#exit()
 
 
 colors=["red", "black", "green"]

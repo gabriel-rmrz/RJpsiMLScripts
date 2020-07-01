@@ -8,7 +8,7 @@ import root_pandas
 
 from root_pandas import read_root
 from root_numpy import fill_hist
-from ROOT import TH2F, TCanvas, gStyle, gPad
+from ROOT import TH2F, TH1F, TCanvas, gStyle, gPad
 from sklearn.metrics import mean_squared_error
 import ROOT
 
@@ -35,8 +35,8 @@ def plotProfile(input_df):
     gStyle.SetOptTitle(0)
     profilePtGenVsPtRatioPredictedGen.GetXaxis().SetTitle("pT_{gen}(Bc) [GeV]")
     profilePtGenVsPtRatioPredictedGen.GetYaxis().SetTitle("pT_{corrected}(B_{c}^{+})/pT_{gen}(B_{c}^{+})")
-    profilePtGenVsPtRatioPredictedGen.Draw("PLC PMC")
-    profilePtGenVsPtRatioCorrectedGen.Draw('same PLC PMC')
+    profilePtGenVsPtRatioPredictedGen.Draw("")
+    profilePtGenVsPtRatioCorrectedGen.Draw('same')
     gPad.BuildLegend()
     c1.SaveAs(plotsDir + 'profile.png')
     return 0
@@ -58,22 +58,46 @@ def plotHistory(history_df, historyFile):
     plt.close()
 
 def plotRatio(input_df, inputFile):
-    plt.figure(num=None, figsize=(6, 5), dpi = 300, facecolor='w', edgecolor='k')
-    plt.legend(fontsize='x-small')
-    binning = np.arange(0.5, 2, 0.05)
+    gStyle.SetOptStat(0)
+    #hPtRatioPredicted = TH1F('hPtRatioPredicted', 'NN prediction, RMS=0.135', 40, 0., 2.)
+    #hPtRatioCorrected = TH1F('hPtRatioPredicted', 'Colinear approximation, RMS=0.175', 40, 0., 2.)
     rmse1 = ((input_df['bc_ptRatio_predictedGen'].mean() - input_df['bc_ptRatio_predictedGen'])**2).mean()**.5
     rmse2 = ((input_df['bc_ptRatio_correctedGen'].mean() - input_df['bc_ptRatio_correctedGen'])**2).mean()**.5
-    input_df['bc_ptRatio_predictedGen'].hist( bins= binning, label="NN prediction, RMS=%3.3f" % rmse1, histtype = 'step', density=1, grid=False)
-    input_df['bc_ptRatio_correctedGen'].hist( bins= binning, label="Jona's correction, RMS=%3.3f" % rmse2, histtype = 'step', density=1, grid=False)
-    print(rmse1)
-    print(rmse2)
 
-    plt.legend()
-    plt.xlabel("pT_corrected(Bc)/pT_gen(Bc)")
-    plt.ylabel("a.u.")
-    plt.tight_layout()
-    plt.savefig(plotsDir+inputFile+'_ratio_predicted_gen.png')
-    plt.close()
+    label1 = "NN prediction, RMS=%3.3f" % rmse1
+    label2 = "Colinear correction, RMS=%3.3f" % rmse2
+    hPtRatioPredicted = TH1F('hPtRatioPredicted', label1, 40, 0., 2.)
+    hPtRatioCorrected = TH1F('hPtRatioPredicted', label2, 40, 0., 2.)
+
+    fill_hist(hPtRatioPredicted, input_df['bc_ptRatio_predictedGen'].to_numpy())
+    fill_hist(hPtRatioCorrected, input_df['bc_ptRatio_correctedGen'].to_numpy())
+
+    c1 = TCanvas('c1', 'c1', 700, 500)
+    hPtRatioPredicted.SetLineColor(ROOT.kAzure)
+    hPtRatioCorrected.SetLineColor(ROOT.kRed)
+    #profilePtGenVsPtRatioPredictedGen.SetTitle("")
+    gStyle.SetOptTitle(0)
+    hPtRatioPredicted.GetYaxis().SetTitle("Events/50 MeV")
+    hPtRatioPredicted.GetXaxis().SetTitle("pT_{corrected}(B_{c}^{+})/pT_{gen}(B_{c}^{+})")
+    hPtRatioPredicted.Draw("")
+    hPtRatioCorrected.Draw('same')
+    gPad.BuildLegend()
+    c1.SaveAs(plotsDir + inputFile + '_ratio_predicted_gen.pdf')
+    
+    #plt.figure(num=None, figsize=(6, 5), dpi = 300, facecolor='w', edgecolor='k')
+    #plt.legend(fontsize='x-small')
+    #binning = np.arange(0.5, 2, 0.05)
+    #input_df['bc_ptRatio_predictedGen'].hist( bins= binning, label="NN prediction, RMS=%3.3f" % rmse1, histtype = 'step', density=1, grid=False)
+    #input_df['bc_ptRatio_correctedGen'].hist( bins= binning, label="Jona's correction, RMS=%3.3f" % rmse2, histtype = 'step', density=1, grid=False)
+    #print(rmse1)
+    #print(rmse2)
+
+    #plt.legend()
+    #plt.xlabel("pT_corrected(Bc)/pT_gen(Bc)")
+    #plt.ylabel("a.u.")
+    #plt.tight_layout()
+    #plt.savefig(plotsDir+inputFile+'_ratio_predicted_gen.png')
+    #plt.close()
 
 
 
