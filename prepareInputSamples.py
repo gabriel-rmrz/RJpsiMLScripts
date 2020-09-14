@@ -68,7 +68,7 @@ def computeProcessedFeatures(muon1_p4, muon2_p4, unpairedMuon_p4, jpsi_p4, bc_p4
     [nn_unpairedMuPhi],
     [nn_unpairedMuPt],
     [nn_unpairedMuEta]], 
-    dtype=np.float32)
+    dtype=np.double)
 
   return featuresEntry
   
@@ -200,6 +200,8 @@ def fillFeaturesArray(features, channel):
     for iBc in iBcSelected:
       featuresEntry = np.array([[0]]* nFeatures, dtype=np.float32)
       for ifeature in range(nFeatures):
+        print(ifeature)
+        print(featuresList[ifeature])
         featuresEntry[ifeature,0] = event.__getattr__(featuresList[ifeature])[iBc]
     
       features = np.append(features,featuresEntry, axis=1)
@@ -210,9 +212,9 @@ def main():
   outDir = 'data/'
   nFeatures = len(featuresList) 
   nGenFeatures = 56
-  features = np.array([[]]* nFeatures, dtype=np.float32)
-  genFeatures = np.array([[]]* nGenFeatures, dtype=np.float32)
-  featuresProcessed = np.array([[]]*nProcessedFeatures, dtype=np.float32)
+  features = np.array([[]]* nFeatures, dtype=np.double)
+  genFeatures = np.array([[]]* nGenFeatures, dtype=np.double)
+  featuresProcessed = np.array([[]]*nProcessedFeatures, dtype=np.double)
 
   #channels=["tau", "muon", "jpsiX"]
   channels=["tau", "muon"]

@@ -323,6 +323,7 @@ def main():
     138, 139, 140, 141, #mu2 pt, px, py, pz
     -3, -2, -1] #vertex distance
   allData, t_input, t_target, v_input, v_target, test_input, test_target, test_allData = get_arrays(trainingSample=trainingSample, predictionSample=predictionSample, allFeaturesList=allFeaturesList, inputFeatures=inputFeatures)
+  allData2, t_input2, t_target2, v_input2, v_target2, test_input2, test_target2, test_allData2 = get_arrays(trainingSample='tau', predictionSample='tau', allFeaturesList=allFeaturesList, inputFeatures=inputFeatures)
 
 
   #######
@@ -342,7 +343,7 @@ def main():
   history_df = pd.DataFrame(history.history, index=history.epoch)
 
   profilePdf =  get_profile_pdf(test_allData[:, [102,0]])
-  prediction_q2 = model.predict(test_input)
+  prediction_q2 = model.predict(test_input2)
   #prediction_nn = model.predict(test_input)
   #prediction_pt = get_pt_from_NNPrediction_scaler(prediction_nn, allData[:, 0])
   #prediction_pt = get_pt_from_NNPrediction_ptRatio(prediction_nn, test_allData[:,102])
@@ -353,7 +354,7 @@ def main():
   #prediction_pt_ratio_df = pd.DataFrame(prediction_pt/test_allData[:,0], columns=['pt_ptRatio_predicted'])
   #prediction_pxpypz_df = pd.DataFrame(prediction_pxpypz, columns=['bc_px_predicted', 'bc_py_predicted', 'bc_pz_predicted'])
   prediction_q2_df = pd.DataFrame(prediction_q2, columns=['nn_q2_predicted'])
-  corrected_pt_ratio_df = pd.DataFrame(test_allData[:,56]/(test_allData[:,0]), columns=['bc_ptRatio_corrected'])
+  corrected_pt_ratio_df = pd.DataFrame(test_allData2[:,56]/(test_allData2[:,0]), columns=['bc_ptRatio_corrected'])
   
   resultsDir = 'results/dnnFeedForward/' + trainingSample + '_channel/'
   outputFile = resultsDir + "results-"+trainingSample + "_channel-nodes"
@@ -369,7 +370,7 @@ def main():
   historyFile += ".root"
   
 
-  test_allDF = pd.DataFrame(test_allData, columns=allFeaturesList, dtype=np.float32)
+  test_allDF = pd.DataFrame(test_allData2, columns=allFeaturesList, dtype=np.float32)
   #results_df = pd.concat([prediction_pt_df, prediction_pt_ratio_df, corrected_pt_ratio_df, test_allDF], axis=1)
   #results_df = pd.concat([prediction_pxpypz_df, corrected_pt_ratio_df, test_allDF], axis=1)
   results_df = pd.concat([prediction_q2_df, corrected_pt_ratio_df, test_allDF], axis=1)
