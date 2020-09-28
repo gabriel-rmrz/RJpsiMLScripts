@@ -78,7 +78,7 @@ def bcSelector(event, isBkg = False):
   iBcSelected = []
   iBcJpsiPts = []
   for iBc in range(event.nBc):
-    if((event.signalDecayPresent[iBc]<1) and (event.normalizationDecayPresent[iBc] < 1) and (event.background1DecayPresent[iBc] < 1) ) : continue
+    if((event.signalDecayPresent[iBc]<1) and (event.normalizationDecayPresent[iBc] < 1)) : continue
     if(event.triggerMatchDimuon0[iBc] < 1 and event.triggerMatchJpsiTk[iBc] < 1 and event.triggerMatchJpsiTkTk[iBc] < 1) : continue
     if(abs(event.Bc_jpsi_mu1_eta[iBc]) > 2.4): continue
     if((event.Bc_jpsi_mu2_eta[iBc] < -2.4) or (event.Bc_jpsi_mu2_eta[iBc] > 2.4) ):continue
@@ -200,8 +200,8 @@ def fillFeaturesArray(features, channel):
     for iBc in iBcSelected:
       featuresEntry = np.array([[0]]* nFeatures, dtype=np.float32)
       for ifeature in range(nFeatures):
-        print(ifeature)
-        print(featuresList[ifeature])
+        #print(ifeature)
+        #print(featuresList[ifeature])
         featuresEntry[ifeature,0] = event.__getattr__(featuresList[ifeature])[iBc]
     
       features = np.append(features,featuresEntry, axis=1)
