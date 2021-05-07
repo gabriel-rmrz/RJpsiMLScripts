@@ -94,13 +94,14 @@ def main():
   trigger = "mu1_isFromMuT & mu2_isFromMuT & k_isFromMuT"
   selection_mc = " & ".join([ preselection_mc, pass_id, trigger])
   selection_data = " & ".join([ preselection, pass_id, trigger])
-  selection_minimal = ' & '.join([
+  selection_minimal_data= ' & '.join([
     'Bmass < 6.2',
     'abs(jpsi_mass - 3.0969)<0.1',
     'mu1_mediumID>0.5',
     'mu2_mediumID>0.5',
     trigger,
     pass_id])
+  selection_minimal_mc= ' & '.join([selection_minimal_data,'abs(k_genpdgId)==13'])
 
   #BcToJPsiMuMu_is_chic0_mu_merged.root     BcToJPsiMuMu_is_jpsi_3pi_merged.root
   #BcToJPsiMuMu_is_jpsi_tau_merged.root     data_ptmax_merged.root
@@ -150,18 +151,18 @@ def main():
   signal_file = "/gpfs/ddn/srm/cms/store/user/garamire/ntuples/2021Mar23/BcToJPsiMuMu_is_jpsi_tau_merged.root"
   input_tree = 'BTo3Mu'
 
-  '''
+
   print("DATA...")
   print("----------------------------------------------------------------------------------")
   print("Reading data ntuple")
   #data_df = read_root(data_file, input_tree).query(selection_data).copy()
-  data_df = read_root(data_file, input_tree).query(selection_minimal).copy()
+  data_df = read_root(data_file, input_tree).query(selection_minimal_data).copy()
   print("Adding momentum in square coordinates for data")
   data_df = add_cartesian_vars(data_df)
   print("")
   print("Saving %s/alldata_selected.root"%(out_dir))
   data_df.to_root("%s/alldata_selected.root"%(out_dir), key=input_tree)
-  '''
+
 
   print("")
   print("")
@@ -171,7 +172,7 @@ def main():
   print("MC Bkg...")
   print("----------------------------------------------------------------------------------")
   print("Reading all mc files")
-  all_mix_dfs_1 = [read_root(input_dir + sample, input_tree).query(selection_minimal) for sample in all_files_names1]
+  all_mix_dfs_1 = [read_root(input_dir + sample, input_tree).query(selection_minimal_mc) for sample in all_files_names1]
   f1 = 0.52/8.5
   f2 = 6.7/8.5
   all_mix_dfs_1_accepted = [] 
@@ -184,12 +185,12 @@ def main():
     all_mix_dfs_1_accepted.append(all_mix_dfs_1_a)
     all_mix_dfs_1_rejected.append(all_mix_dfs_1_r)
 
-  all_mix_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).query(selection_minimal).copy() 
+  all_mix_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).query(selection_minimal_mc).copy() 
   all_mix_dfs_2_accepted, all_mix_dfs_2_rejected= train_test_split( all_mix_dfs_2,
       test_size = f2,
       random_state = 0,
       shuffle = True) 
-  all_mix_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree).query(selection_minimal)
+  all_mix_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree).query(selection_minimal_mc)
 
   #all_mix_df = pd.concat([read_root(input_dir + sample, input_tree) for sample in all_files_names]).query(selection_data).copy()
   all_mix_dfs_1_accepted_concat = pd.concat(all_mix_dfs_1_accepted)
