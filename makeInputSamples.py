@@ -113,7 +113,7 @@ def main():
   #datalowmass_ptmax_merged.root
   #Open original files
   all_files_names = ['BcToJPsiMuMu_is_chic0_mu_merged.root',
-                     'BcToJPsiMuMu_is_jpsi_tau_merged.root',
+                     #'BcToJPsiMuMu_is_jpsi_tau_merged.root',
                      'BcToJPsiMuMu_is_chic1_mu_merged.root',
                      'BcToJPsiMuMu_is_psi2s_mu_merged.root',
                      'BcToJPsiMuMu_is_chic2_mu_merged.root',
@@ -122,14 +122,14 @@ def main():
                      #'BcToJPsiMuMu_is_jpsi_3pi_merged.root',
                      'BcToJPsiMuMu_is_jpsi_hc_merged.root',
                      'HbToJPsiMuMu3MuFilter_ptmax_merged.root',
-                     'BcToJPsiMuMu_is_jpsi_mu_merged.root',
+                     #'BcToJPsiMuMu_is_jpsi_mu_merged.root',
                      'HbToJPsiMuMu_ptmax_merged.root',
-                     #'BcToJPsiMuMu_is_jpsi_pi_merged.root'
+                     'BcToJPsiMuMu_is_jpsi_pi_merged.root'
                     ]
   
   all_files_names1 = [
                      'BcToJPsiMuMu_is_chic0_mu_merged.root',
-                     'BcToJPsiMuMu_is_jpsi_tau_merged.root',
+                     #'BcToJPsiMuMu_is_jpsi_tau_merged.root',
                      'BcToJPsiMuMu_is_chic1_mu_merged.root',
                      'BcToJPsiMuMu_is_psi2s_mu_merged.root',
                      'BcToJPsiMuMu_is_chic2_mu_merged.root',
@@ -137,8 +137,8 @@ def main():
                      'BcToJPsiMuMu_is_hc_mu_merged.root',
                      #'BcToJPsiMuMu_is_jpsi_3pi_merged.root',
                      'BcToJPsiMuMu_is_jpsi_hc_merged.root',
-                     'BcToJPsiMuMu_is_jpsi_mu_merged.root',
-                     #'BcToJPsiMuMu_is_jpsi_pi_merged.root'
+                     #'BcToJPsiMuMu_is_jpsi_mu_merged.root',
+                     'BcToJPsiMuMu_is_jpsi_pi_merged.root'
                     ]
   all_files_names2 = ['HbToJPsiMuMu_ptmax_merged.root']
   all_files_names3 = ['HbToJPsiMuMu3MuFilter_ptmax_merged.root']
@@ -152,6 +152,7 @@ def main():
   input_tree = 'BTo3Mu'
 
 
+  '''
   print("DATA...")
   print("----------------------------------------------------------------------------------")
   print("Reading data ntuple")
@@ -162,6 +163,7 @@ def main():
   print("")
   print("Saving %s/alldata_selected.root"%(out_dir))
   data_df.to_root("%s/alldata_selected.root"%(out_dir), key=input_tree)
+  '''
 
 
   print("")
@@ -172,7 +174,8 @@ def main():
   print("MC Bkg...")
   print("----------------------------------------------------------------------------------")
   print("Reading all mc files")
-  all_mix_dfs_1 = [read_root(input_dir + sample, input_tree).query(selection_minimal_mc) for sample in all_files_names1]
+  #cuts: all_mix_dfs_1 = [read_root(input_dir + sample, input_tree).query(selection_minimal_mc) for sample in all_files_names1]
+  all_mix_dfs_1 = [read_root(input_dir + sample, input_tree) for sample in all_files_names1]
   f1 = 0.52/8.5
   f2 = 6.7/8.5
   all_mix_dfs_1_accepted = [] 
@@ -182,23 +185,30 @@ def main():
       test_size = f1,
       random_state = 0,
       shuffle = True) 
+    print(all_mix_dfs_1_a.size)
+    print(all_mix_dfs_1_r.size)
     all_mix_dfs_1_accepted.append(all_mix_dfs_1_a)
     all_mix_dfs_1_rejected.append(all_mix_dfs_1_r)
 
-  all_mix_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).query(selection_minimal_mc).copy() 
+  #cuts: all_mix_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).query(selection_minimal_mc).copy() 
+  all_mix_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).copy() 
   all_mix_dfs_2_accepted, all_mix_dfs_2_rejected= train_test_split( all_mix_dfs_2,
       test_size = f2,
       random_state = 0,
       shuffle = True) 
-  all_mix_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree).query(selection_minimal_mc)
+  print(all_mix_dfs_2_accepted.size)
+  #cuts: all_mix_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree).query(selection_minimal_mc)
+  all_mix_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree)
+  print(all_mix_dfs_3.size)
 
   #all_mix_df = pd.concat([read_root(input_dir + sample, input_tree) for sample in all_files_names]).query(selection_data).copy()
   all_mix_dfs_1_accepted_concat = pd.concat(all_mix_dfs_1_accepted)
   all_mix_df = pd.concat([all_mix_dfs_1_accepted_concat, all_mix_dfs_2_accepted, all_mix_dfs_3])
-  print("Adding momentum in square coordinates for all MC")
-  all_mix_df = add_cartesian_vars(all_mix_df)
-  print("Saving %s/mc_all.root"%(out_dir))
-  all_mix_df.to_root("%s/mc_all.root"%(out_dir), key=input_tree)
+  #print("Adding momentum in square coordinates for all MC")
+  #all_mix_df = add_cartesian_vars(all_mix_df)
+  print("Saving %s/mc_bkg_all.root"%(out_dir))
+  all_mix_df.to_root("%s/mc_bkg_all.root"%(out_dir), key=input_tree)
+
 
   print("")
   print("")
@@ -207,14 +217,16 @@ def main():
   print("MC Signal...")
   print("----------------------------------------------------------------------------------")
   print("Reading mu channel")
-  norm_df = read_root(norm_file, input_tree).query(selection_mc).copy()
+  norm_df = read_root(norm_file, input_tree)#.query(selection_mc).copy()
   print("Reading tau channel")
-  signal_df = read_root(signal_file, input_tree).query(selection_mc).copy()
+  signal_df = read_root(signal_file, input_tree)#.query(selection_mc).copy()
 
+  '''
   print("Adding momentum in square coordinates for normalisation")
   norm_df = add_cartesian_vars(norm_df)
   print("Adding momentum in square coordinates for signal")
   signal_df = add_cartesian_vars(norm_df)
+  '''
 
   print("Writing is_signal flag")
   signal_df['is_signal_channel'] = 1
@@ -236,6 +248,12 @@ def main():
       shuffle = True,
       stratify= mix_df['is_signal_channel']) 
 
+  mix_accepted_df, mix_rejected_df = train_test_split( mix_df,
+      test_size = f1,
+      random_state = 0,
+      shuffle = True,
+      stratify= mix_df['is_signal_channel']) 
+
   print("Saving %s/BcToJPsiMuMu_is_jpsi_tau_selected.root"%(out_dir))
   signal_selected_df.to_root("%s/BcToJPsiMuMu_is_jpsi_tau_selected.root"%(out_dir), key=input_tree)
 
@@ -248,9 +266,11 @@ def main():
   print("Saving %s/BcToJPsiMuMu_is_jpsi_lepton_train.root"%(out_dir))
   mix_train_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton_train.root"%(out_dir), key=input_tree)
 
-  print("Saving %s/BcToJPsiMuMu_is_jpsi_lepton.root"%(out_dir))
+  print("saving %s/bctojpsimumu_is_jpsi_lepton.root"%(out_dir))
   mix_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton.root"%(out_dir), key=input_tree)
   
+  print("saving %s/bctojpsimumu_is_jpsi_lepton_weight.root"%(out_dir))
+  mix_accepted_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton_weight.root"%(out_dir), key=input_tree)
   
 
 
