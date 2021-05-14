@@ -103,28 +103,18 @@ def main():
     pass_id])
   selection_minimal_mc= ' & '.join([selection_minimal_data,'abs(k_genpdgId)==13'])
 
-  #BcToJPsiMuMu_is_chic0_mu_merged.root     BcToJPsiMuMu_is_jpsi_3pi_merged.root
-  #BcToJPsiMuMu_is_jpsi_tau_merged.root     data_ptmax_merged.root
-  #BcToJPsiMuMu_is_chic1_mu_merged.root     BcToJPsiMuMu_is_jpsi_hc_merged.root
-  #BcToJPsiMuMu_is_psi2s_mu_merged.root     HbToJPsiMuMu3MuFilter_ptmax_merged.root
-  #BcToJPsiMuMu_is_chic2_mu_merged.root     BcToJPsiMuMu_is_jpsi_mu_merged.root
-  #BcToJPsiMuMu_is_psi2s_tau_merged.root    HbToJPsiMuMu_ptmax_merged.root
-  #BcToJPsiMuMu_is_hc_mu_merged.root        BcToJPsiMuMu_is_jpsi_pi_merged.root
-  #datalowmass_ptmax_merged.root
   #Open original files
   all_files_names = ['BcToJPsiMuMu_is_chic0_mu_merged.root',
-                     #'BcToJPsiMuMu_is_jpsi_tau_merged.root',
+                     'BcToJPsiMuMu_is_jpsi_tau_merged.root',
                      'BcToJPsiMuMu_is_chic1_mu_merged.root',
                      'BcToJPsiMuMu_is_psi2s_mu_merged.root',
                      'BcToJPsiMuMu_is_chic2_mu_merged.root',
                      #'BcToJPsiMuMu_is_psi2s_tau_merged.root',
                      'BcToJPsiMuMu_is_hc_mu_merged.root',
-                     #'BcToJPsiMuMu_is_jpsi_3pi_merged.root',
                      'BcToJPsiMuMu_is_jpsi_hc_merged.root',
                      'HbToJPsiMuMu3MuFilter_ptmax_merged.root',
-                     #'BcToJPsiMuMu_is_jpsi_mu_merged.root',
+                     'BcToJPsiMuMu_is_jpsi_mu_merged.root',
                      'HbToJPsiMuMu_ptmax_merged.root',
-                     'BcToJPsiMuMu_is_jpsi_pi_merged.root'
                     ]
   
   all_files_names1 = [
@@ -135,16 +125,13 @@ def main():
                      'BcToJPsiMuMu_is_chic2_mu_merged.root',
                      #'BcToJPsiMuMu_is_psi2s_tau_merged.root',
                      'BcToJPsiMuMu_is_hc_mu_merged.root',
-                     #'BcToJPsiMuMu_is_jpsi_3pi_merged.root',
                      'BcToJPsiMuMu_is_jpsi_hc_merged.root',
                      #'BcToJPsiMuMu_is_jpsi_mu_merged.root',
-                     'BcToJPsiMuMu_is_jpsi_pi_merged.root'
                     ]
   all_files_names2 = ['HbToJPsiMuMu_ptmax_merged.root']
   all_files_names3 = ['HbToJPsiMuMu3MuFilter_ptmax_merged.root']
 
   out_dir = 'data'
-  #input_dir = "/gpfs/ddn/srm/cms/store/user/garamire/ntuples/2021Mar23/"
   input_dir = '/scratch/parolia/2021Mar23/'
   data_file = '/gpfs/ddn/srm/cms/store/user/garamire/ntuples/2021Mar23/data_ptmax_merged.root'
   norm_file = "/gpfs/ddn/srm/cms/store/user/garamire/ntuples/2021Mar23/BcToJPsiMuMu_is_jpsi_mu_merged.root"
@@ -165,7 +152,6 @@ def main():
   data_df.to_root("%s/alldata_selected.root"%(out_dir), key=input_tree)
   '''
 
-
   print("")
   print("")
   print("")
@@ -174,41 +160,43 @@ def main():
   print("MC Bkg...")
   print("----------------------------------------------------------------------------------")
   print("Reading all mc files")
-  #cuts: all_mix_dfs_1 = [read_root(input_dir + sample, input_tree).query(selection_minimal_mc) for sample in all_files_names1]
-  all_mix_dfs_1 = [read_root(input_dir + sample, input_tree) for sample in all_files_names1]
+  #hybrid_bkg_dfs_1 = [read_root(input_dir + sample, input_tree).query(selection_minimal_mc).copy() for sample in all_files_names1]
+  hybrid_bkg_dfs_1 = [read_root(input_dir + sample, input_tree) for sample in all_files_names1]
   f1 = 0.52/8.5
   f2 = 6.7/8.5
-  all_mix_dfs_1_accepted = [] 
-  all_mix_dfs_1_rejected = []
-  for df in all_mix_dfs_1:
-    all_mix_dfs_1_a, all_mix_dfs_1_r= train_test_split( df,
-      test_size = f1,
+  hybrid_bkg_dfs_1_accepted = [] 
+  hybrid_bkg_dfs_1_rejected = []
+  for df in hybrid_bkg_dfs_1:
+    hybrid_bkg_dfs_1_a, hybrid_bkg_dfs_1_r= train_test_split( df,
+      train_size = f1,
+      #test_size = 1-f1,
       random_state = 0,
       shuffle = True) 
-    print(all_mix_dfs_1_a.size)
-    print(all_mix_dfs_1_r.size)
-    all_mix_dfs_1_accepted.append(all_mix_dfs_1_a)
-    all_mix_dfs_1_rejected.append(all_mix_dfs_1_r)
+    print(hybrid_bkg_dfs_1_a.size)
+    print(hybrid_bkg_dfs_1_r.size)
+    hybrid_bkg_dfs_1_accepted.append(hybrid_bkg_dfs_1_a)
+    hybrid_bkg_dfs_1_rejected.append(hybrid_bkg_dfs_1_r)
 
-  #cuts: all_mix_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).query(selection_minimal_mc).copy() 
-  all_mix_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).copy() 
-  all_mix_dfs_2_accepted, all_mix_dfs_2_rejected= train_test_split( all_mix_dfs_2,
-      test_size = f2,
+  #hybrid_bkg_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).query(selection_minimal_mc).copy() 
+  hybrid_bkg_dfs_2 = read_root(input_dir + all_files_names2[0], input_tree).copy() 
+  hybrid_bkg_dfs_2_accepted, hybrid_bkg_dfs_2_rejected= train_test_split( hybrid_bkg_dfs_2,
+      train_size = f2,
+      #test_size = 1-f2,
       random_state = 0,
       shuffle = True) 
-  print(all_mix_dfs_2_accepted.size)
-  #cuts: all_mix_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree).query(selection_minimal_mc)
-  all_mix_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree)
-  print(all_mix_dfs_3.size)
+  print(hybrid_bkg_dfs_2_accepted.size)
+  #hybrid_bkg_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree).query(selection_minimal_mc)
+  hybrid_bkg_dfs_3 = read_root(input_dir + all_files_names3[0], input_tree)
 
-  #all_mix_df = pd.concat([read_root(input_dir + sample, input_tree) for sample in all_files_names]).query(selection_data).copy()
-  all_mix_dfs_1_accepted_concat = pd.concat(all_mix_dfs_1_accepted)
-  all_mix_df = pd.concat([all_mix_dfs_1_accepted_concat, all_mix_dfs_2_accepted, all_mix_dfs_3])
-  #print("Adding momentum in square coordinates for all MC")
-  #all_mix_df = add_cartesian_vars(all_mix_df)
+  hybrid_bkg_dfs_1_accepted_concat = pd.concat(hybrid_bkg_dfs_1_accepted)
+  hybrid_bkg_df = pd.concat([hybrid_bkg_dfs_1_accepted_concat, hybrid_bkg_dfs_2_accepted, hybrid_bkg_dfs_3])
+  '''
+  print("Adding momentum in square coordinates for all MC")
+  hybrid_bkg_df = add_cartesian_vars(hybrid_bkg_df)
+  '''
+
   print("Saving %s/mc_bkg_all.root"%(out_dir))
-  all_mix_df.to_root("%s/mc_bkg_all.root"%(out_dir), key=input_tree)
-
+  hybrid_bkg_df.to_root("%s/mc_bkg_all.root"%(out_dir), key=input_tree)
 
   print("")
   print("")
@@ -217,9 +205,11 @@ def main():
   print("MC Signal...")
   print("----------------------------------------------------------------------------------")
   print("Reading mu channel")
-  norm_df = read_root(norm_file, input_tree)#.query(selection_mc).copy()
+  #norm_df = read_root(norm_file, input_tree).query(selection_minimal_mc).copy()
+  norm_df = read_root(norm_file, input_tree).copy()
   print("Reading tau channel")
-  signal_df = read_root(signal_file, input_tree)#.query(selection_mc).copy()
+  #signal_df = read_root(signal_file, input_tree).query(selection_minimal_mc).copy()
+  signal_df = read_root(signal_file, input_tree).copy()
 
   '''
   print("Adding momentum in square coordinates for normalisation")
@@ -233,26 +223,27 @@ def main():
   norm_df['is_signal_channel'] = 0
   
   #Split samples for training, validation and test.
-  msk = np.random.rand(len(signal_df)) < 0.33
+  msk = np.random.rand(len(signal_df)) < 0.25
   
   print("")
   print("Spliting signal sample to get the correct RJpsi ratio")
   signal_selected_df = signal_df[msk]
   signal_discarted_df = signal_df[~msk]
   
-  mix_df = pd.concat([norm_df, signal_selected_df])
-  print("Spliting mixel sample into train and test sub-samples")
-  mix_train_df, mix_test_df = train_test_split( mix_df,
+  signal_mix_df = pd.concat([norm_df, signal_selected_df]).copy()
+  print("Spliting signal_mixel sample into train and test sub-samples")
+  signal_mix_train_df, signal_mix_test_df = train_test_split( signal_mix_df,
       test_size = 0.3,
       random_state = 0,
       shuffle = True,
-      stratify= mix_df['is_signal_channel']) 
+      stratify= signal_mix_df['is_signal_channel']) 
 
-  mix_accepted_df, mix_rejected_df = train_test_split( mix_df,
-      test_size = f1,
+  signal_mix_accepted_df, signal_mix_rejected_df = train_test_split( signal_mix_df,
+      train_size = f1,
+      test_size = 1-f1,
       random_state = 0,
       shuffle = True,
-      stratify= mix_df['is_signal_channel']) 
+      stratify= signal_mix_df['is_signal_channel']) 
 
   print("Saving %s/BcToJPsiMuMu_is_jpsi_tau_selected.root"%(out_dir))
   signal_selected_df.to_root("%s/BcToJPsiMuMu_is_jpsi_tau_selected.root"%(out_dir), key=input_tree)
@@ -261,18 +252,21 @@ def main():
   signal_discarted_df.to_root("%s/BcToJPsiMuMu_is_jpsi_tau_discarted.root"%(out_dir), key=input_tree)
 
   print("Saving %s/BcToJPsiMuMu_is_jpsi_lepton_test.root"%(out_dir))
-  mix_test_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton_test.root"%(out_dir), key=input_tree)
+  signal_mix_test_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton_test.root"%(out_dir), key=input_tree)
 
   print("Saving %s/BcToJPsiMuMu_is_jpsi_lepton_train.root"%(out_dir))
-  mix_train_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton_train.root"%(out_dir), key=input_tree)
+  signal_mix_train_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton_train.root"%(out_dir), key=input_tree)
 
-  print("saving %s/bctojpsimumu_is_jpsi_lepton.root"%(out_dir))
-  mix_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton.root"%(out_dir), key=input_tree)
+  print("saving %s/BcToJPsiMuMu_is_jpsi_lepton.root"%(out_dir))
+  signal_mix_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton.root"%(out_dir), key=input_tree)
   
-  print("saving %s/bctojpsimumu_is_jpsi_lepton_weight.root"%(out_dir))
-  mix_accepted_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton_weight.root"%(out_dir), key=input_tree)
+  print("saving %s/BcToJPsiMuMu_is_jpsi_lepton_weight.root"%(out_dir))
+  signal_mix_accepted_df.to_root("%s/BcToJPsiMuMu_is_jpsi_lepton_weight.root"%(out_dir), key=input_tree)
   
 
+  all_mc_df = pd.concat([hybrid_bkg_df, signal_mix_accepted_df])
+  print("saving %s/all_mc_weights.root"%(out_dir))
+  all_mc_df.to_root("%s/all_mc_weights.root"%(out_dir), key=input_tree)
 
   
 
