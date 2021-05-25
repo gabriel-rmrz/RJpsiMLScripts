@@ -65,32 +65,35 @@ def add_cartesian_vars(df):
     mu2py.append(mu2_p3.Py())
     mu2pz.append(mu2_p3.Pz())
 
-  df['pv_sv_dist'] = pv_sv_dist
-  df['pv_sv_eta'] = pv_sv_eta
-  df['pv_sv_phi'] = pv_sv_phi
+  df['pv_sv_dist'] = np.array(pv_sv_dist)
+  df['pv_sv_eta'] = np.array(pv_sv_eta)
+  df['pv_sv_phi'] = np.array(pv_sv_phi)
 
-  df['Bpx'] = bpx
-  df['Bpy'] = bpy
-  df['Bpz'] = bpz
+  df['Bpx'] = np.array(bpx)
+  df['Bpy'] = np.array(bpy)
+  df['Bpz'] = np.array(bpz)
   
-  df['kpx'] = kpx
-  df['kpy'] = kpy
-  df['kpz'] = kpz
+  df['kpx'] = np.array(kpx)
+  df['kpy'] = np.array(kpy)
+  df['kpz'] = np.array(kpz)
 
-  df['mu1px'] = mu1px
-  df['mu1py'] = mu1py
-  df['mu1pz'] = mu1pz
+  df['mu1px'] = np.array(mu1px)
+  df['mu1py'] = np.array(mu1py)
+  df['mu1pz'] = np.array(mu1pz)
 
-  df['mu2px'] = mu2px
-  df['mu2py'] = mu2py
-  df['mu2pz'] = mu2pz
+  df['mu2px'] = np.array(mu2px)
+  df['mu2py'] = np.array(mu2py)
+  df['mu2pz'] = np.array(mu2pz)
   
   df['ip3d_s'] = df.ip3d.div(df.ip3d_e)
-  return df
+  return df.copy()
 
 
 
 def main():
+  #Samples weights
+  f1 = 0.52/8.5
+  f2 = 6.7/8.5
   trigger = "mu1_isFromMuT & mu2_isFromMuT & k_isFromMuT"
   selection_mc = " & ".join([ preselection_mc, pass_id, trigger])
   selection_data = " & ".join([ preselection, pass_id, trigger])
@@ -156,14 +159,11 @@ def main():
   print("")
   print("")
 
-
   print("MC Bkg...")
   print("----------------------------------------------------------------------------------")
   print("Reading all mc files")
   #hybrid_bkg_dfs_1 = [read_root(input_dir + sample, input_tree).query(selection_minimal_mc).copy() for sample in all_files_names1]
   hybrid_bkg_dfs_1 = [read_root(input_dir + sample, input_tree) for sample in all_files_names1]
-  f1 = 0.52/8.5
-  f2 = 6.7/8.5
   hybrid_bkg_dfs_1_accepted = [] 
   hybrid_bkg_dfs_1_rejected = []
   for df in hybrid_bkg_dfs_1:
@@ -190,10 +190,9 @@ def main():
 
   hybrid_bkg_dfs_1_accepted_concat = pd.concat(hybrid_bkg_dfs_1_accepted)
   hybrid_bkg_df = pd.concat([hybrid_bkg_dfs_1_accepted_concat, hybrid_bkg_dfs_2_accepted, hybrid_bkg_dfs_3])
-  '''
   print("Adding momentum in square coordinates for all MC")
-  hybrid_bkg_df = add_cartesian_vars(hybrid_bkg_df)
-  '''
+  hybrid_bkg_df['is_signal_channel'] = -1
+  #hybrid_bkg_df = add_cartesian_vars(hybrid_bkg_df)
 
   print("Saving %s/mc_bkg_all.root"%(out_dir))
   hybrid_bkg_df.to_root("%s/mc_bkg_all.root"%(out_dir), key=input_tree)
@@ -211,38 +210,38 @@ def main():
   #signal_df = read_root(signal_file, input_tree).query(selection_minimal_mc).copy()
   signal_df = read_root(signal_file, input_tree).copy()
 
-  '''
   print("Adding momentum in square coordinates for normalisation")
-  norm_df = add_cartesian_vars(norm_df)
+  #norm_df = add_cartesian_vars(norm_df)
   print("Adding momentum in square coordinates for signal")
-  signal_df = add_cartesian_vars(norm_df)
-  '''
+  #signal_df = add_cartesian_vars(signal_df)
 
   print("Writing is_signal flag")
   signal_df['is_signal_channel'] = 1
   norm_df['is_signal_channel'] = 0
   
   #Split samples for training, validation and test.
-  msk = np.random.rand(len(signal_df)) < 0.25
-  
+  #msk = np.random.rand(len(signal_df)) < 0.25
+
+   
   print("")
   print("Spliting signal sample to get the correct RJpsi ratio")
-  signal_selected_df = signal_df[msk]
-  signal_discarted_df = signal_df[~msk]
+  signal_selected_df, signal_discarted_df = train_test_split( signal_df,train_size = 0.25)
+  #signal_selected_df = signal_df[msk]
+  #signal_discarted_df = signal_df[~msk]
   
   signal_mix_df = pd.concat([norm_df, signal_selected_df]).copy()
   print("Spliting signal_mixel sample into train and test sub-samples")
   signal_mix_train_df, signal_mix_test_df = train_test_split( signal_mix_df,
       test_size = 0.3,
-      random_state = 0,
-      shuffle = True,
+      #random_state = 0,
+      #shuffle = True,
       stratify= signal_mix_df['is_signal_channel']) 
 
   signal_mix_accepted_df, signal_mix_rejected_df = train_test_split( signal_mix_df,
       train_size = f1,
-      test_size = 1-f1,
-      random_state = 0,
-      shuffle = True,
+      #test_size = 1-f1,
+      #random_state = 0,
+      #shuffle = True,
       stratify= signal_mix_df['is_signal_channel']) 
 
   print("Saving %s/BcToJPsiMuMu_is_jpsi_tau_selected.root"%(out_dir))
